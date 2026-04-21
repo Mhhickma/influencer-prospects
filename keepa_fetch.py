@@ -6,23 +6,56 @@ from datetime import datetime
 
 api = keepa.Keepa(os.environ["KEEPA_API_KEY"])
 
+# Check available tokens before starting
+status = api.update_status()
+available_tokens = api.tokens_left
+print(f"Available tokens: {available_tokens}")
+
+# Each product query costs 1 token, product_finder costs ~10
+# Budget: 50 tokens total - 10 for finder = 40 for product queries
+MAX_ASINS = 40
+
 product_parms = {
     "hasMainVideo": True,
     "videoCount_lte": 1,
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
     "sort": [["monthlySold", "desc"]],
+    "perPage": MAX_ASINS,
 }
 
 print("Querying Keepa product finder...")
-asins = api.product_finder(product_parms, n_products=500)
+asins = api.product_finder(product_parms, n_products=MAX_ASINS)
 print(f"Found {len(asins)} ASINs")
+
+# Limit to MAX_ASINS to stay within token budget
+asins = asins[:MAX_ASINS]
 
 products = api.query(asins, history=True, videos=True, stats=90)
 
 results = []
 for p in products:
     try:
+        # Skip if influencer/additional videos exist
+        videos = p.get("videos", {})
+        if videos:
+            additional = (
+                videos.get("additionalVideos") or
+                videos.get("videosAdditional") or
+                videos.get("additional") or
+                []
+            )
+            # Check for influencer creator type in main videos too
+            main_videos = videos.get("mainVideos") or videos.get("videosMain") or []
+            has_influencer = any(
+                str(v.get("creatorType", "")).lower() == "influencer"
+                for v in main_videos
+                if isinstance(v, dict)
+            )
+            if len(additional) > 0 or has_influencer:
+                print(f"Skipping {p.get('asin')} - has influencer/additional videos")
+                continue
+
         data = p.get("data", {})
 
         bb_price = None
@@ -111,3 +144,5 @@ with open("data.json", "w") as f:
     json.dump(output, f, indent=2)
 
 print(f"Saved {len(results)} prospects to data.json")
+tokens_used = available_tokens - api.tokens_left
+print(f"Tokens used: {tokens_used}")

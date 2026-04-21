@@ -3,424 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Influencer Prospects</title>
+<title>ProspectDash</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f4f8;
-    --surface: #ffffff;
-    --surface2: #f0f0f5;
-    --border: #e0e0ea;
-    --accent: #6457e8;
-    --accent2: #e8874a;
-    --green: #16a34a;
-    --red: #dc2626;
-    --yellow: #d97706;
-    --text: #1a1a2e;
-    --muted: #7070a0;
-    --mono: 'DM Mono', monospace;
-    --sans: 'Syne', sans-serif;
+    --bg:#f4f4f8;--surface:#fff;--surface2:#f0f0f5;--border:#e0e0ea;
+    --accent:#6457e8;--accent2:#e8874a;--green:#16a34a;--red:#dc2626;
+    --yellow:#d97706;--text:#1a1a2e;--muted:#7070a0;
+    --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-  }
-
-  /* ── LOGIN ── */
-  #login-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-  }
-
-  #login-screen::before {
-    content: '';
-    position: absolute;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(100,87,232,0.08) 0%, transparent 70%);
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-  }
-
-  .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 48px;
-    width: 360px;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 8px 40px rgba(100,87,232,0.10);
-  }
-
-  .login-box h1 {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    margin-bottom: 6px;
-  }
-
-  .login-box p {
-    color: var(--muted);
-    font-size: 13px;
-    font-family: var(--mono);
-    margin-bottom: 32px;
-  }
-
-  .login-box input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 14px;
-    letter-spacing: 4px;
-    text-align: center;
-    outline: none;
-    transition: border-color 0.2s;
-    margin-bottom: 12px;
-  }
-
-  .login-box input:focus { border-color: var(--accent); }
-
-  .login-box button {
-    width: 100%;
-    background: var(--accent);
-    border: none;
-    border-radius: 8px;
-    padding: 12px;
-    color: white;
-    font-family: var(--sans);
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    letter-spacing: 0.5px;
-  }
-
-  .login-box button:hover { opacity: 0.85; }
-
-  .login-error {
-    color: var(--red);
-    font-family: var(--mono);
-    font-size: 12px;
-    margin-top: 10px;
-    display: none;
-  }
-
-  /* ── APP ── */
-  #app { display: none; }
-
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 20px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--surface);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .logo {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-  }
-
-  .logo span { color: var(--accent); }
-
-  .header-stats {
-    display: flex;
-    gap: 24px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .header-stats strong { color: var(--text); }
-
-  .controls {
-    padding: 24px 40px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .filter-btn {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 6px 16px;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .filter-btn:hover, .filter-btn.active {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(124,106,247,0.08);
-  }
-
-  .search-wrap {
-    margin-left: auto;
-    position: relative;
-  }
-
-  .search-wrap input {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 14px 7px 32px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    outline: none;
-    width: 200px;
-    transition: border-color 0.2s;
-  }
-
-  .search-wrap input:focus { border-color: var(--accent); }
-
-  .search-wrap::before {
-    content: '⌕';
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 14px;
-    pointer-events: none;
-  }
-
-  /* ── GRID ── */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-    padding: 32px 40px;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s;
-    animation: fadeUp 0.4s ease both;
-  }
-
-  .card:hover {
-    transform: translateY(-3px);
-    border-color: var(--accent);
-    box-shadow: 0 8px 24px rgba(100,87,232,0.12);
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .card-img {
-    width: 100%;
-    height: 180px;
-    object-fit: contain;
-    background: var(--surface2);
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .card-img-placeholder {
-    width: 100%;
-    height: 180px;
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 32px;
-  }
-
-  .card-body { padding: 18px; }
-
-  .card-brand {
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-  }
-
-  .card-title {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.4;
-    margin-bottom: 16px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    color: var(--text);
-  }
-
-  .card-metrics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .metric {
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 10px 12px;
-  }
-
-  .metric-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-  }
-
-  .metric-value {
-    font-family: var(--mono);
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .metric-value.green { color: var(--green); }
-  .metric-value.red   { color: var(--red); }
-  .metric-value.yellow { color: var(--yellow); }
-
-  .trend-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 500;
-  }
-
-  .trend-growing  { background: rgba(22,163,74,0.10); color: var(--green); border: 1px solid rgba(22,163,74,0.25); }
-  .trend-declining{ background: rgba(220,38,38,0.10); color: var(--red);   border: 1px solid rgba(220,38,38,0.25); }
-  .trend-stable   { background: rgba(217,119,6,0.10);  color: var(--yellow);border: 1px solid rgba(217,119,6,0.25); }
-
-  .card-footer {
-    display: flex;
-    gap: 8px;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-
-  .btn {
-    flex: 1;
-    padding: 8px;
-    border-radius: 7px;
-    font-family: var(--mono);
-    font-size: 11px;
-    text-align: center;
-    text-decoration: none;
-    font-weight: 500;
-    transition: opacity 0.2s;
-    cursor: pointer;
-    border: none;
-  }
-
-  .btn:hover { opacity: 0.8; }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
-  .btn-secondary {
-    background: var(--surface2);
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-
-  .accel-tag {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--accent2);
-    background: rgba(232,135,74,0.1);
-    border: 1px solid rgba(232,135,74,0.25);
-    border-radius: 4px;
-    padding: 2px 7px;
-    display: inline-block;
-    margin-left: 6px;
-  }
-
-  .empty {
-    grid-column: 1/-1;
-    text-align: center;
-    padding: 80px;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 14px;
-  }
-
-  /* ── IMPORT PANEL ── */
-  .import-bar {
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 40px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .import-bar label {
-    background: var(--accent);
-    color: white;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: opacity 0.2s;
-  }
-
-  .import-bar label:hover { opacity: 0.85; }
-  .import-bar input[type=file] { display: none; }
-
-  #import-status { color: var(--green); }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:fixed;inset:0;z-index:100}
+  #login-screen::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(100,87,232,.08) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;width:360px;text-align:center;position:relative;box-shadow:0 8px 40px rgba(100,87,232,.10)}
+  .login-box h1{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+  .login-box p{color:var(--muted);font-size:13px;font-family:var(--mono);margin-bottom:32px}
+  .login-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:14px;letter-spacing:4px;text-align:center;outline:none;transition:border-color .2s;margin-bottom:12px}
+  .login-box input:focus{border-color:var(--accent)}
+  .login-box button{width:100%;background:var(--accent);border:none;border-radius:8px;padding:12px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:.5px}
+  .login-box button:hover{opacity:.85}
+  .login-error{color:var(--red);font-family:var(--mono);font-size:12px;margin-top:10px;display:none}
+  #app{display:none}
+  header{border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:10}
+  .logo{font-size:16px;font-weight:800;letter-spacing:-.3px}
+  .logo span{color:var(--accent)}
+  .header-stats{display:flex;gap:24px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .header-stats strong{color:var(--text)}
+  .status-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 40px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  #import-status{color:var(--green)}
+  .controls{padding:24px 40px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+  .filter-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 16px;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s}
+  .filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(100,87,232,.08)}
+  .search-wrap{margin-left:auto;position:relative}
+  .search-wrap input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px 7px 32px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:200px;transition:border-color .2s}
+  .search-wrap input:focus{border-color:var(--accent)}
+  .search-wrap::before{content:'⌕';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;padding:32px 40px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s;animation:fadeUp .4s ease both}
+  .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(100,87,232,.12)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .card-img{width:100%;height:180px;object-fit:contain;background:var(--surface2);padding:16px;border-bottom:1px solid var(--border)}
+  .card-img-placeholder{width:100%;height:180px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:32px}
+  .card-body{padding:18px}
+  .card-brand{font-size:11px;font-family:var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .card-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .metric{background:var(--surface2);border-radius:8px;padding:10px 12px}
+  .metric-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .metric-value{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text)}
+  .metric-value.green{color:var(--green)}.metric-value.red{color:var(--red)}.metric-value.yellow{color:var(--yellow)}
+  .trend-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+  .trend-growing{background:rgba(22,163,74,.10);color:var(--green);border:1px solid rgba(22,163,74,.25)}
+  .trend-declining{background:rgba(220,38,38,.10);color:var(--red);border:1px solid rgba(220,38,38,.25)}
+  .trend-stable{background:rgba(217,119,6,.10);color:var(--yellow);border:1px solid rgba(217,119,6,.25)}
+  .accel-tag{font-family:var(--mono);font-size:10px;color:var(--accent2);background:rgba(232,135,74,.1);border:1px solid rgba(232,135,74,.25);border-radius:4px;padding:2px 7px;display:inline-block;margin-left:6px}
+  .card-footer{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+  .btn{flex:1;padding:8px;border-radius:7px;font-family:var(--mono);font-size:11px;text-align:center;text-decoration:none;font-weight:500;transition:opacity .2s;cursor:pointer;border:none}
+  .btn:hover{opacity:.8}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+  .empty{grid-column:1/-1;text-align:center;padding:80px;color:var(--muted);font-family:var(--mono);font-size:14px}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
     <h1>Prospect<span>Dash</span></h1>
@@ -431,7 +78,6 @@
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <header>
     <div class="logo">Prospect<span>Dash</span></div>
@@ -441,304 +87,121 @@
       <span>Growing: <strong id="stat-growing">0</strong></span>
     </div>
   </header>
-
-  <div class="import-bar">
-    <label>
-      📂 Import CSV
-      <input type="file" id="csv-file" accept=".csv" onchange="loadCSV(this)">
-    </label>
-    <span id="import-status"></span>
-    <span>— or prospects below are sample data. Replace by importing your Keepa CSV export.</span>
+  <div class="status-bar">
+    <span id="import-status">⏳ Loading prospects...</span>
+    <span id="last-updated"></span>
   </div>
-
   <div class="controls">
-    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
-    <button class="filter-btn" onclick="setFilter('Growing', this)">📈 Growing</button>
-    <button class="filter-btn" onclick="setFilter('Stable', this)">➡️ Stable</button>
-    <button class="filter-btn" onclick="setFilter('Declining', this)">📉 Declining</button>
-    <button class="filter-btn" onclick="setFilter('accelerating', this)">⚡ Accelerating</button>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('Growing',this)">📈 Growing</button>
+    <button class="filter-btn" onclick="setFilter('Stable',this)">➡️ Stable</button>
+    <button class="filter-btn" onclick="setFilter('Declining',this)">📉 Declining</button>
+    <button class="filter-btn" onclick="setFilter('accelerating',this)">⚡ Accelerating</button>
     <div class="search-wrap">
       <input type="text" placeholder="search brand or title..." oninput="searchCards(this.value)">
     </div>
   </div>
-
   <div class="grid" id="card-grid"></div>
 </div>
 
 <script>
-// ── PASSWORD ──
-const PASSWORD = "amazon2024"; // Change this to your password
+const PASSWORD = "amazon2024";
 
 function checkPw() {
   const val = document.getElementById('pw-input').value;
   if (val === PASSWORD) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    renderCards(prospects);
+    loadData();
   } else {
     document.getElementById('pw-error').style.display = 'block';
     document.getElementById('pw-input').value = '';
   }
 }
 
-// ── SAMPLE DATA (replace by importing your CSV) ──
-let prospects = [
-  {
-    asin: "B08XYZ1234",
-    title: "Premium Bamboo Cutting Board Set with Juice Groove, Large Kitchen Chopping Board",
-    brand: "GreenLife Kitchen",
-    brand_store_url: "https://www.amazon.com/stores/GreenLifeKitchen",
-    amazon_url: "https://www.amazon.com/dp/B08XYZ1234",
-    image_url: "",
-    buybox_price: 34.99,
-    monthly_units: 420,
-    monthly_revenue: 14696,
-    rating: 4.6,
-    review_count: 3241,
-    video_count: 1,
-    sales_trend: "Growing",
-    sales_trend_pct: 28,
-    sales_rank_drops_90: 1260,
-    sales_rank_drops_30: 560,
-    accelerating: true
-  },
-  {
-    asin: "B09ABC5678",
-    title: "Adjustable Dumbbell Set 5-52.5 lbs, Fast Adjust Weight for Home Gym",
-    brand: "PowerFit Pro",
-    brand_store_url: "https://www.amazon.com/stores/PowerFitPro",
-    amazon_url: "https://www.amazon.com/dp/B09ABC5678",
-    image_url: "",
-    buybox_price: 189.99,
-    monthly_units: 95,
-    monthly_revenue: 18049,
-    rating: 4.4,
-    review_count: 876,
-    video_count: 1,
-    sales_trend: "Stable",
-    sales_trend_pct: 3,
-    sales_rank_drops_90: 285,
-    sales_rank_drops_30: 98,
-    accelerating: false
-  },
-  {
-    asin: "B07DEF9012",
-    title: "Organic Matcha Green Tea Powder, Ceremonial Grade, 100g",
-    brand: "Encha Organic",
-    brand_store_url: "https://www.amazon.com/stores/Encha",
-    amazon_url: "https://www.amazon.com/dp/B07DEF9012",
-    image_url: "",
-    buybox_price: 27.99,
-    monthly_units: 310,
-    monthly_revenue: 8677,
-    rating: 4.7,
-    review_count: 5102,
-    video_count: 1,
-    sales_trend: "Growing",
-    sales_trend_pct: 45,
-    sales_rank_drops_90: 930,
-    sales_rank_drops_30: 420,
-    accelerating: true
-  },
-  {
-    asin: "B06GHI3456",
-    title: "Stainless Steel Water Bottle 32oz, Vacuum Insulated, BPA Free",
-    brand: "HydraFlow",
-    brand_store_url: "https://www.amazon.com/stores/HydraFlow",
-    amazon_url: "https://www.amazon.com/dp/B06GHI3456",
-    image_url: "",
-    buybox_price: 22.95,
-    monthly_units: 680,
-    monthly_revenue: 15606,
-    rating: 4.5,
-    review_count: 12400,
-    video_count: 1,
-    sales_trend: "Declining",
-    sales_trend_pct: -18,
-    sales_rank_drops_90: 2040,
-    sales_rank_drops_30: 580,
-    accelerating: false
-  },
-  {
-    asin: "B05JKL7890",
-    title: "LED Desk Lamp with USB Charging Port, Eye-Caring, Touch Control, 5 Color Modes",
-    brand: "LuminArc",
-    brand_store_url: "https://www.amazon.com/stores/LuminArc",
-    amazon_url: "https://www.amazon.com/dp/B05JKL7890",
-    image_url: "",
-    buybox_price: 39.99,
-    monthly_units: 230,
-    monthly_revenue: 9198,
-    rating: 4.3,
-    review_count: 2876,
-    video_count: 1,
-    sales_trend: "Stable",
-    sales_trend_pct: -2,
-    sales_rank_drops_90: 690,
-    sales_rank_drops_30: 225,
-    accelerating: false
-  },
-  {
-    asin: "B04MNO2345",
-    title: "Collagen Peptides Powder, Grass Fed, Hydrolyzed Protein, Unflavored 16oz",
-    brand: "Vital Roots",
-    brand_store_url: "https://www.amazon.com/stores/VitalRoots",
-    amazon_url: "https://www.amazon.com/dp/B04MNO2345",
-    image_url: "",
-    buybox_price: 42.00,
-    monthly_units: 390,
-    monthly_revenue: 16380,
-    rating: 4.8,
-    review_count: 8934,
-    video_count: 1,
-    sales_trend: "Growing",
-    sales_trend_pct: 19,
-    sales_rank_drops_90: 1170,
-    sales_rank_drops_30: 490,
-    accelerating: true
-  },
-];
-
+let prospects = [];
 let activeFilter = 'all';
 let searchTerm = '';
 
-// ── RENDER ──
+async function loadData() {
+  try {
+    const res = await fetch('data.json?t=' + Date.now());
+    if (!res.ok) throw new Error('No data');
+    const json = await res.json();
+    prospects = json.prospects || [];
+    document.getElementById('import-status').textContent = `✓ ${prospects.length} prospects loaded`;
+    document.getElementById('last-updated').textContent = `Last updated: ${json.last_updated || ''}`;
+    renderCards(prospects);
+  } catch(e) {
+    document.getElementById('import-status').style.color = 'var(--yellow)';
+    document.getElementById('import-status').textContent = '⚠️ No data yet — run the GitHub Actions workflow first.';
+  }
+}
+
 function renderCards(data) {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = '';
-
-  let filtered = data.filter(p => {
-    const matchFilter = activeFilter === 'all' ? true
-      : activeFilter === 'accelerating' ? p.accelerating
-      : p.sales_trend === activeFilter;
-    const matchSearch = searchTerm === '' ? true
-      : p.brand.toLowerCase().includes(searchTerm)
-      || p.title.toLowerCase().includes(searchTerm);
-    return matchFilter && matchSearch;
+  const filtered = data.filter(p => {
+    const mf = activeFilter === 'all' ? true : activeFilter === 'accelerating' ? p.accelerating : p.sales_trend === activeFilter;
+    const ms = searchTerm === '' ? true : (p.brand||'').toLowerCase().includes(searchTerm)||(p.title||'').toLowerCase().includes(searchTerm);
+    return mf && ms;
   });
-
-  // Update header stats
   document.getElementById('stat-total').textContent = filtered.length;
-  const avg = filtered.length ? Math.round(filtered.reduce((s,p) => s + p.monthly_revenue, 0) / filtered.length) : 0;
-  document.getElementById('stat-avg').textContent = '$' + avg.toLocaleString();
-  document.getElementById('stat-growing').textContent = filtered.filter(p => p.sales_trend === 'Growing').length;
-
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="empty">no prospects match this filter</div>';
-    return;
-  }
-
-  filtered.forEach((p, i) => {
-    const trendClass = p.sales_trend === 'Growing' ? 'trend-growing'
-      : p.sales_trend === 'Declining' ? 'trend-declining' : 'trend-stable';
-    const trendIcon = p.sales_trend === 'Growing' ? '↑'
-      : p.sales_trend === 'Declining' ? '↓' : '→';
-    const trendSign = p.sales_trend_pct > 0 ? '+' : '';
-    const ratingColor = p.rating >= 4.5 ? 'green' : p.rating >= 4.0 ? 'yellow' : 'red';
-
-    const imgHtml = p.image_url
-      ? `<img class="card-img" src="${p.image_url}" alt="${p.brand}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-      : '';
-    const placeholderHtml = `<div class="card-img-placeholder" ${p.image_url ? 'style="display:none"' : ''}>📦</div>`;
-
+  const avg = filtered.length ? Math.round(filtered.reduce((s,p)=>s+(p.monthly_revenue||0),0)/filtered.length) : 0;
+  document.getElementById('stat-avg').textContent = '$'+avg.toLocaleString();
+  document.getElementById('stat-growing').textContent = filtered.filter(p=>p.sales_trend==='Growing').length;
+  if (!filtered.length) { grid.innerHTML='<div class="empty">no prospects match this filter</div>'; return; }
+  filtered.forEach((p,i) => {
+    const trendClass = p.sales_trend==='Growing'?'trend-growing':p.sales_trend==='Declining'?'trend-declining':'trend-stable';
+    const trendIcon = p.sales_trend==='Growing'?'↑':p.sales_trend==='Declining'?'↓':'→';
+    const trendSign = (p.sales_trend_pct||0)>0?'+':'';
+    const ratingColor = (p.rating||0)>=4.5?'green':(p.rating||0)>=4.0?'yellow':'red';
+    const d90 = p.sales_rank_drops_90||0;
+    const d30 = p.sales_rank_drops_30||0;
+    const proxyUrl = p.image_url ? `https://images.weserv.nl/?url=${encodeURIComponent(p.image_url)}&w=400&output=webp` : '';
+    const imgHtml = proxyUrl ? `<img class="card-img" src="${proxyUrl}" alt="${p.brand||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+    const ph = `<div class="card-img-placeholder" ${proxyUrl?'style="display:none"':''}>📦</div>`;
     const card = document.createElement('div');
     card.className = 'card';
-    card.style.animationDelay = `${i * 0.05}s`;
+    card.style.animationDelay = `${i*0.05}s`;
     card.innerHTML = `
-      ${imgHtml}${placeholderHtml}
+      ${imgHtml}${ph}
       <div class="card-body">
-        <div class="card-brand">${p.brand}</div>
-        <div class="card-title">${p.title}</div>
+        <div class="card-brand">${p.brand||''}</div>
+        <div class="card-title">${p.title||''}</div>
         <div class="card-metrics">
-          <div class="metric">
-            <div class="metric-label">Monthly Rev</div>
-            <div class="metric-value green">$${p.monthly_revenue.toLocaleString()}</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">Price / Units</div>
-            <div class="metric-value">$${p.buybox_price} · ${p.monthly_units}</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">Rating</div>
-            <div class="metric-value ${ratingColor}">★ ${p.rating} <span style="color:var(--muted);font-size:11px">(${p.review_count?.toLocaleString()})</span></div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">Est. Daily Sales</div>
+          <div class="metric"><div class="metric-label">Monthly Rev</div><div class="metric-value green">$${(p.monthly_revenue||0).toLocaleString()}</div></div>
+          <div class="metric"><div class="metric-label">Price / Units</div><div class="metric-value">$${p.buybox_price||0} · ${p.monthly_units||0}</div></div>
+          <div class="metric"><div class="metric-label">Rating</div><div class="metric-value ${ratingColor}">★ ${p.rating||'—'} <span style="color:var(--muted);font-size:11px">(${(p.review_count||0).toLocaleString()})</span></div></div>
+          <div class="metric"><div class="metric-label">Est. Daily Sales</div>
             <div class="metric-value" style="display:flex;align-items:baseline;gap:5px">
-              ~${Math.round((p.sales_rank_drops_90||0)/90)}<span style="font-size:11px;color:var(--muted)">/day</span>
-              <span style="font-size:11px;font-weight:600;color:${(p.sales_rank_drops_30||0)>(p.sales_rank_drops_90||0)/3?'var(--green)':'var(--red)'}">
-                ${(p.sales_rank_drops_30||0)>(p.sales_rank_drops_90||0)/3?'▲ picking up':'▼ slowing'}
+              ~${Math.round(d90/90)}<span style="font-size:11px;color:var(--muted)">/day</span>
+              <span style="font-size:11px;font-weight:600;color:${d30>(d90/3)?'var(--green)':'var(--red)'}">
+                ${d30>(d90/3)?'▲ picking up':'▼ slowing'}
               </span>
             </div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="trend-badge ${trendClass}">${trendIcon} ${p.sales_trend} ${trendSign}${p.sales_trend_pct}%</span>
-          ${p.accelerating ? '<span class="accel-tag">⚡ accel</span>' : ''}
+          <span class="trend-badge ${trendClass}">${trendIcon} ${p.sales_trend} ${trendSign}${p.sales_trend_pct||0}%</span>
+          ${p.accelerating?'<span class="accel-tag">⚡ accel</span>':''}
         </div>
         <div class="card-footer">
-          <a class="btn btn-primary" href="${p.amazon_url}" target="_blank">View Listing</a>
-          <a class="btn btn-secondary" href="${p.brand_store_url}" target="_blank">Brand Store</a>
+          <a class="btn btn-primary" href="${p.amazon_url||'#'}" target="_blank">View Listing</a>
+          <a class="btn btn-secondary" href="${p.brand_store_url||'#'}" target="_blank">Brand Store</a>
         </div>
-      </div>
-    `;
+      </div>`;
     grid.appendChild(card);
   });
 }
 
-function setFilter(f, btn) {
-  activeFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+function setFilter(f,btn) {
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderCards(prospects);
 }
-
-function searchCards(val) {
-  searchTerm = val.toLowerCase();
-  renderCards(prospects);
-}
-
-// ── CSV IMPORT ──
-function loadCSV(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const lines = e.target.result.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
-    const data = [];
-    for (let i = 1; i < lines.length; i++) {
-      const vals = parseCSVLine(lines[i]);
-      const obj = {};
-      headers.forEach((h, idx) => {
-        let v = vals[idx] || '';
-        // Try to parse numbers
-        if (!isNaN(v) && v !== '') v = parseFloat(v);
-        if (v === 'True' || v === 'true') v = true;
-        if (v === 'False' || v === 'false') v = false;
-        obj[h] = v;
-      });
-      data.push(obj);
-    }
-    prospects = data;
-    document.getElementById('import-status').textContent = `✓ ${data.length} prospects loaded`;
-    renderCards(prospects);
-  };
-  reader.readAsText(file);
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] === '"') { inQuotes = !inQuotes; continue; }
-    if (line[i] === ',' && !inQuotes) { result.push(current.trim()); current = ''; continue; }
-    current += line[i];
-  }
-  result.push(current.trim());
-  return result;
-}
+function searchCards(val) { searchTerm=val.toLowerCase(); renderCards(prospects); }
 </script>
 </body>
 </html>

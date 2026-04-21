@@ -40,7 +40,7 @@ for p in products:
         monthly_units = p.get("monthlySold", 0) or 0
         monthly_revenue = bb_price * monthly_units
 
-        if monthly_revenue < 1:
+        if monthly_revenue < 5000:
             continue
 
         images = p.get("imagesCSV", "")

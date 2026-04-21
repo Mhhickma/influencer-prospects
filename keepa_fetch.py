@@ -23,10 +23,12 @@ results = []
 for p in products:
     try:
         data = p.get("data", {})
-        bb = data.get("BUY_BOX_SHIPPING") or data.get("NEW") or data.get("AMAZON") or []
+        bb = next((v for k in ["BUY_BOX_SHIPPING", "NEW", "AMAZON"] if (v := data.get(k)) is not None and len(v) > 0), None)
+        if bb is None:
+            continue
         if not bb or len(bb) == 0:
             continue
-        raw = [x for x in bb if x and x > 0]
+        raw = [x for x in bb if x is not None and not (hasattr(x, '__float__') and x != x) and x > 0]
         if not raw:
             continue
         bb_price = raw[-1] / 100

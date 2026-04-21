@@ -1,6 +1,7 @@
 import keepa
 import json
 import os
+import numpy as np
 from datetime import datetime
 
 api = keepa.Keepa(os.environ["KEEPA_API_KEY"])
@@ -23,16 +24,20 @@ results = []
 for p in products:
     try:
         data = p.get("data", {})
-        bb = next((v for k in ["BUY_BOX_SHIPPING", "NEW", "AMAZON"] if (v := data.get(k)) is not None and len(v) > 0), None)
-        if bb is None:
+
+        bb_price = None
+        for key in ["BUY_BOX_SHIPPING", "NEW", "AMAZON"]:
+            arr = data.get(key)
+            if arr is not None and hasattr(arr, "__len__") and len(arr) > 0:
+                valid = [float(x) for x in arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
+                if valid:
+                    bb_price = valid[-1] / 100
+                    break
+
+        if bb_price is None:
             continue
-        if not bb or len(bb) == 0:
-            continue
-        raw = [x for x in bb if x is not None and not (hasattr(x, '__float__') and x != x) and x > 0]
-        if not raw:
-            continue
-        bb_price = raw[-1] / 100
-        monthly_units = p.get("monthlySold", 0)
+
+        monthly_units = p.get("monthlySold", 0) or 0
         monthly_revenue = bb_price * monthly_units
 
         if monthly_revenue < 1:
@@ -52,8 +57,22 @@ for p in products:
 
         drops_90 = p.get("salesRankDrops90", 0) or 0
         drops_30 = p.get("salesRankDrops30", 0) or 0
-        accelerating = drops_30 > (drops_90 * 0.4) if drops_90 > 0 else False
+        accelerating = bool(drops_30 > (drops_90 * 0.4)) if drops_90 > 0 else False
         daily_sales = round(drops_90 / 90) if drops_90 else 0
+
+        rating = None
+        rating_arr = data.get("RATING")
+        if rating_arr is not None and len(rating_arr) > 0:
+            valid_r = [float(x) for x in rating_arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
+            if valid_r:
+                rating = valid_r[-1] / 10
+
+        review_count = None
+        review_arr = data.get("COUNT_REVIEWS")
+        if review_arr is not None and len(review_arr) > 0:
+            valid_rv = [int(x) for x in review_arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
+            if valid_rv:
+                review_count = valid_rv[-1]
 
         results.append({
             "asin": p["asin"],
@@ -65,8 +84,8 @@ for p in products:
             "buybox_price": round(bb_price, 2),
             "monthly_units": monthly_units,
             "monthly_revenue": round(monthly_revenue, 2),
-            "rating": p["data"]["RATING"][-1] / 10 if p["data"].get("RATING") else None,
-            "review_count": int(p["data"]["COUNT_REVIEWS"][-1]) if p["data"].get("COUNT_REVIEWS") else None,
+            "rating": rating,
+            "review_count": review_count,
             "video_count": p.get("videoCount", 0),
             "sales_trend": sales_trend,
             "sales_trend_pct": trend_pct,
@@ -78,7 +97,7 @@ for p in products:
             "listed_since": p.get("listedSince", None),
         })
 
-    except (KeyError, IndexError, TypeError) as e:
+    except Exception as e:
         print(f"Skipping {p.get('asin', '?')}: {e}")
         continue
 

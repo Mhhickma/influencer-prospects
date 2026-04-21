@@ -33,23 +33,18 @@ products = api.query(asins, history=True, videos=True, stats=90)
 results = []
 for p in products:
     try:
-        # Skip if influencer/additional videos exist
-        videos = p.get("videos", {})
-        if videos:
-            additional = (
-                videos.get("additionalVideos") or
-                videos.get("videosAdditional") or
-                videos.get("additional") or
-                []
-            )
-            main_videos = videos.get("mainVideos") or videos.get("videosMain") or []
-            has_influencer = any(
-                str(v.get("creatorType", "")).lower() == "influencer"
-                for v in main_videos
-                if isinstance(v, dict)
-            )
-            if len(additional) > 0 or has_influencer:
-                print(f"Skipping {p.get('asin')} - has influencer/additional videos")
+        # videos is a list of video objects - skip if any are influencer type
+        videos = p.get("videos") or []
+        if isinstance(videos, list) and len(videos) > 0:
+            has_influencer = False
+            for v in videos:
+                if isinstance(v, dict):
+                    creator = str(v.get("creatorType", "")).lower()
+                    if creator == "influencer":
+                        has_influencer = True
+                        break
+            if has_influencer:
+                print(f"Skipping {p.get('asin')} - has influencer video")
                 continue
 
         data = p.get("data", {})

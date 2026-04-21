@@ -17,7 +17,7 @@ print("Querying Keepa product finder...")
 asins = api.product_finder(product_parms, n_products=500)
 print(f"Found {len(asins)} ASINs")
 
-products = api.query(asins, history=False, videos=True, stats=90)
+products = api.query(asins, history=True, videos=True, stats=90)
 
 results = []
 for p in products:

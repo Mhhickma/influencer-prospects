@@ -10,7 +10,7 @@ product_parms = {
     "videoCount_lte": 1,
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
-    "sort": ["monthlySold", "desc"],
+    "sort": [["monthlySold", "desc"]],
 }
 
 print("Querying Keepa product finder...")

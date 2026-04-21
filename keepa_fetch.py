@@ -45,7 +45,7 @@ for p in products:
 
         images = p.get("imagesCSV", "")
         first_image = images.split(",")[0] if images else ""
-        image_url = f"https://images-na.ssl-images-amazon.com/images/I/{first_image}" if first_image else ""
+        image_url = f"https://m.media-amazon.com/images/I/{first_image}" if first_image else ""
 
         trend_pct = p.get("deltaPercent90_monthlySold", 0) or 0
         if trend_pct > 10:

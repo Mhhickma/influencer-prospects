@@ -22,11 +22,18 @@ products = api.query(asins, history=True, videos=True, stats=90)
 results = []
 for p in products:
     try:
-        bb_price = p["data"]["BUY_BOX_SHIPPING"][-1] / 100
+        data = p.get("data", {})
+        bb = data.get("BUY_BOX_SHIPPING") or data.get("NEW") or data.get("AMAZON") or []
+        if not bb or len(bb) == 0:
+            continue
+        raw = [x for x in bb if x and x > 0]
+        if not raw:
+            continue
+        bb_price = raw[-1] / 100
         monthly_units = p.get("monthlySold", 0)
         monthly_revenue = bb_price * monthly_units
 
-        if monthly_revenue < 5000:
+        if monthly_revenue < 1:
             continue
 
         images = p.get("imagesCSV", "")

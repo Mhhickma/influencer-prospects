@@ -6,13 +6,12 @@ from datetime import datetime
 
 api = keepa.Keepa(os.environ["KEEPA_API_KEY"])
 
-# Check available tokens before starting
-status = api.update_status()
+# Check available tokens
+api.update_status()
 available_tokens = api.tokens_left
 print(f"Available tokens: {available_tokens}")
 
-# Each product query costs 1 token, product_finder costs ~10
-# Budget: 50 tokens total - 10 for finder = 40 for product queries
+# Budget 50 tokens: ~10 for finder + 40 for product queries
 MAX_ASINS = 40
 
 product_parms = {
@@ -21,14 +20,12 @@ product_parms = {
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
     "sort": [["monthlySold", "desc"]],
-    "perPage": MAX_ASINS,
 }
 
 print("Querying Keepa product finder...")
 asins = api.product_finder(product_parms, n_products=MAX_ASINS)
 print(f"Found {len(asins)} ASINs")
 
-# Limit to MAX_ASINS to stay within token budget
 asins = asins[:MAX_ASINS]
 
 products = api.query(asins, history=True, videos=True, stats=90)
@@ -45,7 +42,6 @@ for p in products:
                 videos.get("additional") or
                 []
             )
-            # Check for influencer creator type in main videos too
             main_videos = videos.get("mainVideos") or videos.get("videosMain") or []
             has_influencer = any(
                 str(v.get("creatorType", "")).lower() == "influencer"
@@ -143,6 +139,6 @@ output = {
 with open("data.json", "w") as f:
     json.dump(output, f, indent=2)
 
-print(f"Saved {len(results)} prospects to data.json")
 tokens_used = available_tokens - api.tokens_left
-print(f"Tokens used: {tokens_used}")
+print(f"Saved {len(results)} prospects to data.json")
+print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")

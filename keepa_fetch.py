@@ -6,12 +6,10 @@ from datetime import datetime
 
 api = keepa.Keepa(os.environ["KEEPA_API_KEY"])
 
-# Check available tokens
 api.update_status()
 available_tokens = api.tokens_left
 print(f"Available tokens: {available_tokens}")
 
-# Budget 50 tokens: ~10 for finder + 40 for product queries
 MAX_ASINS = 40
 
 product_parms = {
@@ -29,25 +27,40 @@ asins = asins[:MAX_ASINS]
 
 products = api.query(asins, history=True, videos=True, stats=90)
 
+# DEBUG - print video structure for first 3 products that have videos
+debug_count = 0
+for p in products:
+    videos = p.get("videos") or []
+    if videos and debug_count < 3:
+        print(f"\nDEBUG ASIN {p.get('asin')} videos ({len(videos)} total):")
+        for i, v in enumerate(videos[:5]):
+            print(f"  video[{i}]: {v}")
+        debug_count += 1
+
+print("\nDEBUG complete - check output above for video structure")
+
 results = []
 for p in products:
     try:
-        # ── VIDEO FILTER ──
-        # videos is a list of dicts with keys: creatorType, title, url, etc.
         videos = p.get("videos") or []
 
-        # Must have at least one main/merchant video
-        main_videos = [v for v in videos if isinstance(v, dict) and str(v.get("creatorType", "")).lower() not in ("influencer", "")]
-        if len(main_videos) == 0:
+        # DEBUG: print unique creatorType values seen
+        creator_types = set()
+        for v in videos:
+            if isinstance(v, dict):
+                creator_types.add(str(v.get("creatorType", "MISSING")))
+        if creator_types:
+            print(f"ASIN {p.get('asin')}: creatorTypes = {creator_types}")
+
+        # Skip if ANY influencer video present
+        has_influencer = any(
+            isinstance(v, dict) and str(v.get("creatorType", "")).lower() == "influencer"
+            for v in videos
+        )
+        if has_influencer:
+            print(f"  -> Skipping: has influencer video")
             continue
 
-        # Must have NO influencer videos
-        influencer_videos = [v for v in videos if isinstance(v, dict) and str(v.get("creatorType", "")).lower() == "influencer"]
-        if len(influencer_videos) > 0:
-            print(f"Skipping {p.get('asin')} - has {len(influencer_videos)} influencer video(s)")
-            continue
-
-        # ── PRICE ──
         data = p.get("data", {})
         bb_price = None
         for key in ["BUY_BOX_SHIPPING", "NEW", "AMAZON"]:
@@ -61,25 +74,18 @@ for p in products:
         if bb_price is None:
             continue
 
-        # ── REVENUE ──
         monthly_units = p.get("monthlySold", 0) or 0
         monthly_revenue = bb_price * monthly_units
 
         if monthly_revenue < 5000:
             continue
 
-        # ── BUILD RESULT ──
         images = p.get("imagesCSV", "")
         first_image = images.split(",")[0] if images else ""
         image_url = f"https://m.media-amazon.com/images/I/{first_image}" if first_image else ""
 
         trend_pct = p.get("deltaPercent90_monthlySold", 0) or 0
-        if trend_pct > 10:
-            sales_trend = "Growing"
-        elif trend_pct < -10:
-            sales_trend = "Declining"
-        else:
-            sales_trend = "Stable"
+        sales_trend = "Growing" if trend_pct > 10 else "Declining" if trend_pct < -10 else "Stable"
 
         drops_90 = p.get("salesRankDrops90", 0) or 0
         drops_30 = p.get("salesRankDrops30", 0) or 0
@@ -111,7 +117,7 @@ for p in products:
             "monthly_revenue": round(monthly_revenue, 2),
             "rating": rating,
             "review_count": review_count,
-            "video_count": len(main_videos),
+            "video_count": len(videos),
             "sales_trend": sales_trend,
             "sales_trend_pct": trend_pct,
             "sales_rank_drops_90": drops_90,
@@ -136,5 +142,5 @@ with open("data.json", "w") as f:
     json.dump(output, f, indent=2)
 
 tokens_used = available_tokens - api.tokens_left
-print(f"Saved {len(results)} prospects to data.json")
+print(f"\nSaved {len(results)} prospects to data.json")
 print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")

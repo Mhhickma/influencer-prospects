@@ -3,8 +3,14 @@ import json
 import os
 import numpy as np
 from datetime import datetime
+from amazon_creatorsapi import AmazonCreatorsApi, Country
+from amazon_creatorsapi.models import GetItemsResource
 
 api = keepa.Keepa(os.environ["KEEPA_API_KEY"])
+
+CREDENTIAL_ID     = os.environ["CREATORS_CREDENTIAL_ID"]
+CREDENTIAL_SECRET = os.environ["CREATORS_CREDENTIAL_SECRET"]
+PARTNER_TAG       = os.getenv("AFFILIATE_TAG", "influencer-20")
 
 api.update_status()
 available_tokens = api.tokens_left
@@ -26,17 +32,16 @@ product_parms = {
 print("Querying Keepa product finder...")
 asins = api.product_finder(product_parms, n_products=MAX_ASINS)
 print(f"Found {len(asins)} ASINs")
-
 asins = asins[:MAX_ASINS]
 
 products = api.query(asins, history=True, videos=True, stats=90)
 
-results = []
+# ── Build initial results from Keepa ──
+keepa_data = {}
 for p in products:
     try:
         videos = p.get("videos") or []
 
-        # Must have at least one Main video
         has_main = any(
             isinstance(v, dict) and str(v.get("creator", "")).lower() == "main"
             for v in videos
@@ -44,7 +49,6 @@ for p in products:
         if not has_main:
             continue
 
-        # Count influencer videos - allow up to 3
         influencer_count = sum(
             1 for v in videos
             if isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
@@ -63,7 +67,6 @@ for p in products:
                     bb_price = valid[-1] / 100
                     break
 
-        # Skip if no price or price looks wrong (under $5)
         if bb_price is None or bb_price < 5:
             continue
 
@@ -72,10 +75,6 @@ for p in products:
 
         if monthly_revenue < 5000:
             continue
-
-        images = p.get("imagesCSV", "")
-        first_image = images.split(",")[0] if images else ""
-        image_url = f"https://m.media-amazon.com/images/I/{first_image}" if first_image else ""
 
         trend_pct = p.get("deltaPercent90_monthlySold", 0) or 0
         sales_trend = "Growing" if trend_pct > 10 else "Declining" if trend_pct < -10 else "Stable"
@@ -100,13 +99,13 @@ for p in products:
 
         main_count = sum(1 for v in videos if isinstance(v, dict) and str(v.get("creator", "")).lower() == "main")
 
-        results.append({
+        keepa_data[p["asin"]] = {
             "asin": p["asin"],
             "title": p.get("title", ""),
             "brand": p.get("brand", ""),
             "brand_store_url": f"https://www.amazon.com/stores/{p.get('brandStoreUrlName', '')}",
             "amazon_url": f"https://www.amazon.com/dp/{p['asin']}",
-            "image_url": image_url,
+            "image_url": "",
             "buybox_price": round(bb_price, 2),
             "monthly_units": monthly_units,
             "monthly_revenue": round(monthly_revenue, 2),
@@ -122,11 +121,54 @@ for p in products:
             "accelerating": accelerating,
             "has_aplus": p.get("hasAPlus", False),
             "listed_since": p.get("listedSince", None),
-        })
+        }
 
     except Exception as e:
         print(f"Skipping {p.get('asin', '?')}: {e}")
         continue
+
+print(f"\nKeepa filtered to {len(keepa_data)} prospects")
+
+# ── Enrich with Amazon Creators API for images ──
+if keepa_data:
+    print("Fetching images from Amazon Creators API...")
+    try:
+        amazon = AmazonCreatorsApi(
+            credential_id=CREDENTIAL_ID,
+            credential_secret=CREDENTIAL_SECRET,
+            version="3.1",
+            tag=PARTNER_TAG,
+            country=Country.US,
+        )
+
+        resources = [
+            GetItemsResource.IMAGES_DOT_PRIMARY_DOT_LARGE,
+            GetItemsResource.ITEM_INFO_DOT_TITLE,
+        ]
+
+        asin_list = list(keepa_data.keys())
+        for i in range(0, len(asin_list), 10):
+            batch = asin_list[i:i+10]
+            print(f"  Batch {i//10+1}: {len(batch)} ASINs...")
+            try:
+                items = amazon.get_items(batch, resources=resources)
+                for item in items:
+                    asin = item.asin
+                    if asin in keepa_data:
+                        try:
+                            img = item.images.primary.large.url
+                            if img:
+                                keepa_data[asin]["image_url"] = img
+                                print(f"    Got image for {asin}")
+                        except:
+                            pass
+            except Exception as e:
+                print(f"  Batch failed: {e}")
+
+    except Exception as e:
+        print(f"Amazon Creators API error: {e}")
+
+results = list(keepa_data.values())
 
 output = {
     "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
@@ -138,5 +180,5 @@ with open("data.json", "w") as f:
     json.dump(output, f, indent=2)
 
 tokens_used = available_tokens - api.tokens_left
-print(f"Saved {len(results)} prospects to data.json")
+print(f"\nSaved {len(results)} prospects to data.json")
 print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")

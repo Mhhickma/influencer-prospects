@@ -27,38 +27,27 @@ asins = asins[:MAX_ASINS]
 
 products = api.query(asins, history=True, videos=True, stats=90)
 
-# DEBUG - print video structure for first 3 products that have videos
-debug_count = 0
-for p in products:
-    videos = p.get("videos") or []
-    if videos and debug_count < 3:
-        print(f"\nDEBUG ASIN {p.get('asin')} videos ({len(videos)} total):")
-        for i, v in enumerate(videos[:5]):
-            print(f"  video[{i}]: {v}")
-        debug_count += 1
-
-print("\nDEBUG complete - check output above for video structure")
-
 results = []
 for p in products:
     try:
+        # videos is a list of dicts with key 'creator' (not 'creatorType')
         videos = p.get("videos") or []
 
-        # DEBUG: print unique creatorType values seen
-        creator_types = set()
-        for v in videos:
-            if isinstance(v, dict):
-                creator_types.add(str(v.get("creatorType", "MISSING")))
-        if creator_types:
-            print(f"ASIN {p.get('asin')}: creatorTypes = {creator_types}")
+        # Must have at least one Main video
+        has_main = any(
+            isinstance(v, dict) and str(v.get("creator", "")).lower() == "main"
+            for v in videos
+        )
+        if not has_main:
+            continue
 
-        # Skip if ANY influencer video present
+        # Skip if ANY Influencer video present
         has_influencer = any(
-            isinstance(v, dict) and str(v.get("creatorType", "")).lower() == "influencer"
+            isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
             for v in videos
         )
         if has_influencer:
-            print(f"  -> Skipping: has influencer video")
+            print(f"Skipping {p.get('asin')} - has influencer video")
             continue
 
         data = p.get("data", {})
@@ -105,6 +94,8 @@ for p in products:
             if valid_rv:
                 review_count = valid_rv[-1]
 
+        main_count = sum(1 for v in videos if isinstance(v, dict) and str(v.get("creator", "")).lower() == "main")
+
         results.append({
             "asin": p["asin"],
             "title": p.get("title", ""),
@@ -117,7 +108,7 @@ for p in products:
             "monthly_revenue": round(monthly_revenue, 2),
             "rating": rating,
             "review_count": review_count,
-            "video_count": len(videos),
+            "video_count": main_count,
             "sales_trend": sales_trend,
             "sales_trend_pct": trend_pct,
             "sales_rank_drops_90": drops_90,
@@ -142,5 +133,5 @@ with open("data.json", "w") as f:
     json.dump(output, f, indent=2)
 
 tokens_used = available_tokens - api.tokens_left
-print(f"\nSaved {len(results)} prospects to data.json")
+print(f"Saved {len(results)} prospects to data.json")
 print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")

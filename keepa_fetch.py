@@ -12,14 +12,17 @@ print(f"Available tokens: {available_tokens}")
 
 MAX_ASINS = 40
 
+# Strategy: look for products with FEWER reviews (newer/less established)
+# These are less likely to have attracted influencers yet
 product_parms = {
     "hasMainVideo": True,
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
-    # Price range $20-$60 (Keepa prices are in cents)
-    "current_BUY_BOX_SHIPPING_gte": 2000,
-    "current_BUY_BOX_SHIPPING_lte": 6000,
-    "sort": [["listedSince", "desc"]],
+    "current_BUY_BOX_SHIPPING_gte": 2000,   # $20 min
+    "current_BUY_BOX_SHIPPING_lte": 6000,   # $60 max
+    "current_COUNT_REVIEWS_lte": 500,        # fewer reviews = newer brand
+    "current_COUNT_REVIEWS_gte": 10,         # but has some traction
+    "sort": [["monthlySold", "desc"]],
 }
 
 print("Querying Keepa product finder...")

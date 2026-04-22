@@ -16,7 +16,8 @@ api.update_status()
 available_tokens = api.tokens_left
 print(f"Available tokens: {available_tokens}")
 
-MAX_ASINS = 40
+# 10 token budget: ~2 for finder + 8 for product queries
+MAX_ASINS = 8
 
 product_parms = {
     "hasMainVideo": True,
@@ -36,7 +37,6 @@ asins = asins[:MAX_ASINS]
 
 products = api.query(asins, history=True, videos=True, stats=90)
 
-# ── Build initial results from Keepa ──
 keepa_data = {}
 for p in products:
     try:
@@ -53,7 +53,7 @@ for p in products:
             1 for v in videos
             if isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
         )
-        if influencer_count > 3:
+        if influencer_count > 5:
             print(f"Skipping {p.get('asin')} - {influencer_count} influencer videos")
             continue
 
@@ -129,7 +129,6 @@ for p in products:
 
 print(f"\nKeepa filtered to {len(keepa_data)} prospects")
 
-# ── Enrich with Amazon Creators API for images ──
 if keepa_data:
     print("Fetching images from Amazon Creators API...")
     try:
@@ -140,12 +139,10 @@ if keepa_data:
             tag=PARTNER_TAG,
             country=Country.US,
         )
-
         resources = [
             GetItemsResource.IMAGES_DOT_PRIMARY_DOT_LARGE,
             GetItemsResource.ITEM_INFO_DOT_TITLE,
         ]
-
         asin_list = list(keepa_data.keys())
         for i in range(0, len(asin_list), 10):
             batch = asin_list[i:i+10]
@@ -164,7 +161,6 @@ if keepa_data:
                             pass
             except Exception as e:
                 print(f"  Batch failed: {e}")
-
     except Exception as e:
         print(f"Amazon Creators API error: {e}")
 

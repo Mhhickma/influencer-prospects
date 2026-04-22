@@ -14,17 +14,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
-  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:fixed;inset:0;z-index:100}
-  #login-screen::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(100,87,232,.08) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
-  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;width:360px;text-align:center;position:relative;box-shadow:0 8px 40px rgba(100,87,232,.10)}
-  .login-box h1{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
-  .login-box p{color:var(--muted);font-size:13px;font-family:var(--mono);margin-bottom:32px}
-  .login-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:14px;letter-spacing:4px;text-align:center;outline:none;transition:border-color .2s;margin-bottom:12px}
-  .login-box input:focus{border-color:var(--accent)}
-  .login-box button{width:100%;background:var(--accent);border:none;border-radius:8px;padding:12px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:.5px}
-  .login-box button:hover{opacity:.85}
-  .login-error{color:var(--red);font-family:var(--mono);font-size:12px;margin-top:10px;display:none}
-  #app{display:none}
+  #app{display:block}
   header{border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:10}
   .logo{font-size:16px;font-weight:800;letter-spacing:-.3px}
   .logo span{color:var(--accent)}
@@ -68,15 +58,7 @@
 </head>
 <body>
 
-<div id="login-screen">
-  <div class="login-box">
-    <h1>Prospect<span>Dash</span></h1>
-    <p>influencer opportunity tracker</p>
-    <input type="password" id="pw-input" placeholder="enter password" onkeydown="if(event.key==='Enter')checkPw()">
-    <button onclick="checkPw()">Enter</button>
-    <div class="login-error" id="pw-error">incorrect password</div>
-  </div>
-</div>
+
 
 <div id="app">
   <header>
@@ -105,19 +87,8 @@
 </div>
 
 <script>
-const PASSWORD = "amazon2024";
-
-function checkPw() {
-  const val = document.getElementById('pw-input').value;
-  if (val === PASSWORD) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    loadData();
-  } else {
-    document.getElementById('pw-error').style.display = 'block';
-    document.getElementById('pw-input').value = '';
-  }
-}
+// no password - load on start
+document.addEventListener("DOMContentLoaded", loadData);
 
 let prospects = [];
 let activeFilter = 'all';

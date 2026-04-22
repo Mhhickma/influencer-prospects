@@ -12,16 +12,14 @@ print(f"Available tokens: {available_tokens}")
 
 MAX_ASINS = 40
 
-# Strategy: look for products with FEWER reviews (newer/less established)
-# These are less likely to have attracted influencers yet
 product_parms = {
     "hasMainVideo": True,
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
-    "current_BUY_BOX_SHIPPING_gte": 2000,   # $20 min
-    "current_BUY_BOX_SHIPPING_lte": 6000,   # $60 max
-    "current_COUNT_REVIEWS_lte": 500,        # fewer reviews = newer brand
-    "current_COUNT_REVIEWS_gte": 10,         # but has some traction
+    "current_BUY_BOX_SHIPPING_gte": 2000,
+    "current_BUY_BOX_SHIPPING_lte": 6000,
+    "videoCount_lte": 5,
+    "videoCount_gte": 1,
     "sort": [["monthlySold", "desc"]],
 }
 
@@ -38,6 +36,7 @@ for p in products:
     try:
         videos = p.get("videos") or []
 
+        # Must have at least one Main video
         has_main = any(
             isinstance(v, dict) and str(v.get("creator", "")).lower() == "main"
             for v in videos
@@ -45,12 +44,13 @@ for p in products:
         if not has_main:
             continue
 
-        has_influencer = any(
-            isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
-            for v in videos
+        # Count influencer videos - allow up to 3
+        influencer_count = sum(
+            1 for v in videos
+            if isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
         )
-        if has_influencer:
-            print(f"Skipping {p.get('asin')} - has influencer video")
+        if influencer_count > 3:
+            print(f"Skipping {p.get('asin')} - {influencer_count} influencer videos")
             continue
 
         data = p.get("data", {})
@@ -112,6 +112,7 @@ for p in products:
             "rating": rating,
             "review_count": review_count,
             "video_count": main_count,
+            "influencer_count": influencer_count,
             "sales_trend": sales_trend,
             "sales_trend_pct": trend_pct,
             "sales_rank_drops_90": drops_90,

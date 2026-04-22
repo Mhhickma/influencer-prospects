@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install keepa && pip install creatorsapi-python-sdk.zip
+      - run: pip install keepa python-amazon-paapi
       - name: Run Keepa fetch
         env:
           KEEPA_API_KEY: ${{ secrets.KEEPA_API_KEY }}

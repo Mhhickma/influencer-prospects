@@ -14,7 +14,6 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
-  #app{display:block}
   header{border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:10}
   .logo{font-size:16px;font-weight:800;letter-spacing:-.3px}
   .logo span{color:var(--accent)}
@@ -29,7 +28,7 @@
   .search-wrap input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px 7px 32px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:200px;transition:border-color .2s}
   .search-wrap input:focus{border-color:var(--accent)}
   .search-wrap::before{content:'⌕';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;padding:32px 40px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:32px 40px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s;animation:fadeUp .4s ease both}
   .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(100,87,232,.12)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -41,7 +40,7 @@
   .card-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
   .metric{background:var(--surface2);border-radius:8px;padding:10px 12px}
   .metric-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-  .metric-value{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text)}
+  .metric-value{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text)}
   .metric-value.green{color:var(--green)}.metric-value.red{color:var(--red)}.metric-value.yellow{color:var(--yellow)}
   .trend-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
   .trend-growing{background:rgba(22,163,74,.10);color:var(--green);border:1px solid rgba(22,163,74,.25)}
@@ -58,38 +57,34 @@
 </head>
 <body>
 
-
-
-<div id="app">
-  <header>
-    <div class="logo">Prospect<span>Dash</span></div>
-    <div class="header-stats">
-      <span>Total: <strong id="stat-total">0</strong></span>
-      <span>Avg Revenue: <strong id="stat-avg">$0</strong></span>
-      <span>Growing: <strong id="stat-growing">0</strong></span>
-    </div>
-  </header>
-  <div class="status-bar">
-    <span id="import-status">⏳ Loading prospects...</span>
-    <span id="last-updated"></span>
+<header>
+  <div class="logo">Prospect<span>Dash</span></div>
+  <div class="header-stats">
+    <span>Total: <strong id="stat-total">0</strong></span>
+    <span>Avg Revenue: <strong id="stat-avg">$0</strong></span>
+    <span>Growing: <strong id="stat-growing">0</strong></span>
   </div>
-  <div class="controls">
-    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-    <button class="filter-btn" onclick="setFilter('Growing',this)">📈 Growing</button>
-    <button class="filter-btn" onclick="setFilter('Stable',this)">➡️ Stable</button>
-    <button class="filter-btn" onclick="setFilter('Declining',this)">📉 Declining</button>
-    <button class="filter-btn" onclick="setFilter('accelerating',this)">⚡ Accelerating</button>
-    <div class="search-wrap">
-      <input type="text" placeholder="search brand or title..." oninput="searchCards(this.value)">
-    </div>
-  </div>
-  <div class="grid" id="card-grid"></div>
+</header>
+
+<div class="status-bar">
+  <span id="import-status">⏳ Loading prospects...</span>
+  <span id="last-updated"></span>
 </div>
 
-<script>
-// no password - load on start
-document.addEventListener("DOMContentLoaded", loadData);
+<div class="controls">
+  <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('Growing',this)">📈 Growing</button>
+  <button class="filter-btn" onclick="setFilter('Stable',this)">➡️ Stable</button>
+  <button class="filter-btn" onclick="setFilter('Declining',this)">📉 Declining</button>
+  <button class="filter-btn" onclick="setFilter('accelerating',this)">⚡ Accelerating</button>
+  <div class="search-wrap">
+    <input type="text" placeholder="search brand or title..." oninput="searchCards(this.value)">
+  </div>
+</div>
 
+<div class="grid" id="card-grid"></div>
+
+<script>
 let prospects = [];
 let activeFilter = 'all';
 let searchTerm = '';
@@ -122,6 +117,7 @@ function renderCards(data) {
   document.getElementById('stat-avg').textContent = '$'+avg.toLocaleString();
   document.getElementById('stat-growing').textContent = filtered.filter(p=>p.sales_trend==='Growing').length;
   if (!filtered.length) { grid.innerHTML='<div class="empty">no prospects match this filter</div>'; return; }
+
   filtered.forEach((p,i) => {
     const trendClass = p.sales_trend==='Growing'?'trend-growing':p.sales_trend==='Declining'?'trend-declining':'trend-stable';
     const trendIcon = p.sales_trend==='Growing'?'↑':p.sales_trend==='Declining'?'↓':'→';
@@ -129,9 +125,19 @@ function renderCards(data) {
     const ratingColor = (p.rating||0)>=4.5?'green':(p.rating||0)>=4.0?'yellow':'red';
     const d90 = p.sales_rank_drops_90||0;
     const d30 = p.sales_rank_drops_30||0;
-    const proxyUrl = p.image_url ? `https://images.weserv.nl/?url=${encodeURIComponent(p.image_url)}&w=400&output=webp` : '';
-    const imgHtml = proxyUrl ? `<img class="card-img" src="${proxyUrl}" alt="${p.brand||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+    const inf = p.influencer_count||0;
+    const infColor = inf===0?'var(--green)':inf<=2?'var(--yellow)':'var(--red)';
+    const infLabel = inf===0?'none yet':inf===1?'1 so far':inf+' so far';
+
+    // Image proxy to bypass CORS
+    const proxyUrl = p.image_url
+      ? `https://images.weserv.nl/?url=${encodeURIComponent(p.image_url)}&w=400&output=webp`
+      : '';
+    const imgHtml = proxyUrl
+      ? `<img class="card-img" src="${proxyUrl}" alt="${p.brand||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
     const ph = `<div class="card-img-placeholder" ${proxyUrl?'style="display:none"':''}>📦</div>`;
+
     const card = document.createElement('div');
     card.className = 'card';
     card.style.animationDelay = `${i*0.05}s`;
@@ -141,21 +147,34 @@ function renderCards(data) {
         <div class="card-brand">${p.brand||''}</div>
         <div class="card-title">${p.title||''}</div>
         <div class="card-metrics">
-          <div class="metric"><div class="metric-label">Monthly Rev</div><div class="metric-value green">$${(p.monthly_revenue||0).toLocaleString()}</div></div>
-          <div class="metric"><div class="metric-label">Price / Units</div><div class="metric-value">$${p.buybox_price||0} · ${p.monthly_units||0}</div></div>
-          <div class="metric"><div class="metric-label">Rating</div><div class="metric-value ${ratingColor}">★ ${p.rating||'—'} <span style="color:var(--muted);font-size:11px">(${(p.review_count||0).toLocaleString()})</span></div></div>
-          <div class="metric"><div class="metric-label">Influencer Videos</div>
-            <div class="metric-value" style="color:${(p.influencer_count||0)===0?'var(--green)':(p.influencer_count||0)<=3?'var(--yellow)':'var(--red)'}">
-              ${p.influencer_count||0} <span style="font-size:11px;color:var(--muted)">${(p.influencer_count||0)===0?'none yet':(p.influencer_count||0)<=1?'low comp':'some comp'}</span>
-            </div>
+          <div class="metric">
+            <div class="metric-label">Monthly Rev</div>
+            <div class="metric-value green">$${(p.monthly_revenue||0).toLocaleString()}</div>
           </div>
-          <div class="metric"><div class="metric-label">Est. Daily Sales</div>
-            <div class="metric-value" style="display:flex;align-items:baseline;gap:5px">
-              ~${Math.round(d90/90)}<span style="font-size:11px;color:var(--muted)">/day</span>
-              <span style="font-size:11px;font-weight:600;color:${d30>(d90/3)?'var(--green)':'var(--red)'}">
-                ${d30>(d90/3)?'▲ picking up':'▼ slowing'}
+          <div class="metric">
+            <div class="metric-label">Price</div>
+            <div class="metric-value">$${p.buybox_price||0}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Units/mo</div>
+            <div class="metric-value">${(p.monthly_units||0).toLocaleString()}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Rating</div>
+            <div class="metric-value ${ratingColor}">★ ${p.rating||'—'} <span style="color:var(--muted);font-size:10px">(${(p.review_count||0).toLocaleString()})</span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Daily Sales</div>
+            <div class="metric-value" style="display:flex;align-items:baseline;gap:4px">
+              ~${Math.round(d90/90)}<span style="font-size:10px;color:var(--muted)">/day</span>
+              <span style="font-size:10px;font-weight:600;color:${d30>(d90/3)?'var(--green)':'var(--red)'}">
+                ${d30>(d90/3)?'▲':'▼'}
               </span>
             </div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Influencer Vids</div>
+            <div class="metric-value" style="color:${infColor}">${infLabel}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -178,6 +197,8 @@ function setFilter(f,btn) {
   renderCards(prospects);
 }
 function searchCards(val) { searchTerm=val.toLowerCase(); renderCards(prospects); }
+
+document.addEventListener('DOMContentLoaded', loadData);
 </script>
 </body>
 </html>

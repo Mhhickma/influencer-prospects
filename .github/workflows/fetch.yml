@@ -13,10 +13,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install keepa
+      - run: pip install keepa amazon-creators-api
       - name: Run Keepa fetch
         env:
           KEEPA_API_KEY: ${{ secrets.KEEPA_API_KEY }}
+          CREATORS_CREDENTIAL_ID: ${{ secrets.CREATORS_CREDENTIAL_ID }}
+          CREATORS_CREDENTIAL_SECRET: ${{ secrets.CREATORS_CREDENTIAL_SECRET }}
         run: python keepa_fetch.py
       - name: Commit data
         run: |

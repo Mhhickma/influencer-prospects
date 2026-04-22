@@ -16,7 +16,10 @@ product_parms = {
     "hasMainVideo": True,
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
-    "sort": [["monthlySold", "desc"]],
+    # Price range $20-$60 (Keepa prices are in cents)
+    "current_BUY_BOX_SHIPPING_gte": 2000,
+    "current_BUY_BOX_SHIPPING_lte": 6000,
+    "sort": [["listedSince", "desc"]],
 }
 
 print("Querying Keepa product finder...")
@@ -30,10 +33,8 @@ products = api.query(asins, history=True, videos=True, stats=90)
 results = []
 for p in products:
     try:
-        # videos is a list of dicts with key 'creator' (not 'creatorType')
         videos = p.get("videos") or []
 
-        # Must have at least one Main video
         has_main = any(
             isinstance(v, dict) and str(v.get("creator", "")).lower() == "main"
             for v in videos
@@ -41,7 +42,6 @@ for p in products:
         if not has_main:
             continue
 
-        # Skip if ANY Influencer video present
         has_influencer = any(
             isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
             for v in videos

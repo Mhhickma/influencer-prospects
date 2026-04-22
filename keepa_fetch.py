@@ -63,7 +63,8 @@ for p in products:
                     bb_price = valid[-1] / 100
                     break
 
-        if bb_price is None:
+        # Skip if no price or price looks wrong (under $5)
+        if bb_price is None or bb_price < 5:
             continue
 
         monthly_units = p.get("monthlySold", 0) or 0
@@ -88,7 +89,7 @@ for p in products:
         if rating_arr is not None and len(rating_arr) > 0:
             valid_r = [float(x) for x in rating_arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
             if valid_r:
-                rating = valid_r[-1] / 10
+                rating = round(valid_r[-1] / 10, 1)
 
         review_count = None
         review_arr = data.get("COUNT_REVIEWS")

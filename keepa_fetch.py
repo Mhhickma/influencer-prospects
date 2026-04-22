@@ -16,7 +16,6 @@ MAX_ASINS = 40
 
 product_parms = {
     "hasMainVideo": True,
-    "videoCount_lte": 1,
     "current_RATING_gte": 40,
     "monthlySold_gte": 10,
     "sort": [["monthlySold", "desc"]],
@@ -33,22 +32,23 @@ products = api.query(asins, history=True, videos=True, stats=90)
 results = []
 for p in products:
     try:
-        # videos is a list of video objects - skip if any are influencer type
+        # ── VIDEO FILTER ──
+        # videos is a list of dicts with keys: creatorType, title, url, etc.
         videos = p.get("videos") or []
-        if isinstance(videos, list) and len(videos) > 0:
-            has_influencer = False
-            for v in videos:
-                if isinstance(v, dict):
-                    creator = str(v.get("creatorType", "")).lower()
-                    if creator == "influencer":
-                        has_influencer = True
-                        break
-            if has_influencer:
-                print(f"Skipping {p.get('asin')} - has influencer video")
-                continue
 
+        # Must have at least one main/merchant video
+        main_videos = [v for v in videos if isinstance(v, dict) and str(v.get("creatorType", "")).lower() not in ("influencer", "")]
+        if len(main_videos) == 0:
+            continue
+
+        # Must have NO influencer videos
+        influencer_videos = [v for v in videos if isinstance(v, dict) and str(v.get("creatorType", "")).lower() == "influencer"]
+        if len(influencer_videos) > 0:
+            print(f"Skipping {p.get('asin')} - has {len(influencer_videos)} influencer video(s)")
+            continue
+
+        # ── PRICE ──
         data = p.get("data", {})
-
         bb_price = None
         for key in ["BUY_BOX_SHIPPING", "NEW", "AMAZON"]:
             arr = data.get(key)
@@ -61,12 +61,14 @@ for p in products:
         if bb_price is None:
             continue
 
+        # ── REVENUE ──
         monthly_units = p.get("monthlySold", 0) or 0
         monthly_revenue = bb_price * monthly_units
 
         if monthly_revenue < 5000:
             continue
 
+        # ── BUILD RESULT ──
         images = p.get("imagesCSV", "")
         first_image = images.split(",")[0] if images else ""
         image_url = f"https://m.media-amazon.com/images/I/{first_image}" if first_image else ""
@@ -82,7 +84,6 @@ for p in products:
         drops_90 = p.get("salesRankDrops90", 0) or 0
         drops_30 = p.get("salesRankDrops30", 0) or 0
         accelerating = bool(drops_30 > (drops_90 * 0.4)) if drops_90 > 0 else False
-        daily_sales = round(drops_90 / 90) if drops_90 else 0
 
         rating = None
         rating_arr = data.get("RATING")
@@ -110,12 +111,12 @@ for p in products:
             "monthly_revenue": round(monthly_revenue, 2),
             "rating": rating,
             "review_count": review_count,
-            "video_count": p.get("videoCount", 0),
+            "video_count": len(main_videos),
             "sales_trend": sales_trend,
             "sales_trend_pct": trend_pct,
             "sales_rank_drops_90": drops_90,
             "sales_rank_drops_30": drops_30,
-            "daily_sales": daily_sales,
+            "daily_sales": round(drops_90 / 90) if drops_90 else 0,
             "accelerating": accelerating,
             "has_aplus": p.get("hasAPlus", False),
             "listed_since": p.get("listedSince", None),

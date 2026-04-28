@@ -126,6 +126,9 @@ function renderCards(data) {
     const d90 = p.sales_rank_drops_90||0;
     const d30 = p.sales_rank_drops_30||0;
     const inf = p.influencer_count||0;
+    const mainVideos = p.main_video_count||0;
+    const otherVideos = p.other_video_count||0;
+    const totalVideos = p.video_count ?? (mainVideos + inf + otherVideos);
     const infColor = inf===0?'var(--green)':inf<=2?'var(--yellow)':'var(--red)';
     const infLabel = inf===0?'none yet':inf===1?'1 so far':inf+' so far';
 
@@ -175,6 +178,18 @@ function renderCards(data) {
           <div class="metric">
             <div class="metric-label">Influencer Vids</div>
             <div class="metric-value" style="color:${infColor}">${infLabel}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Video Count</div>
+            <div class="metric-value">${totalVideos}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Main Vids</div>
+            <div class="metric-value">${mainVideos}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Other Vids</div>
+            <div class="metric-value">${otherVideos}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">

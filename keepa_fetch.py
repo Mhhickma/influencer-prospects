@@ -24,6 +24,8 @@ def env_float(name, default):
 
 DOMAIN = "US"
 MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
+MIN_PRICE = env_float("MIN_PRICE", 25)
+MAX_PRICE = env_float("MAX_PRICE", 100)
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
 MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 5)
 
@@ -33,8 +35,39 @@ CREDENTIAL_SECRET = os.environ["CREATORS_CREDENTIAL_SECRET"]
 PARTNER_TAG = os.getenv("AFFILIATE_TAG") or "influencer-20"
 
 
-def latest_positive_price(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "AMAZON")):
-    """Return the latest positive price in dollars, using fallback Keepa price arrays."""
+def cents_to_dollars(value):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if np.isnan(value) or value <= 0:
+        return None
+
+    return value / 100
+
+
+def price_from_stats(product):
+    """
+    Prefer Keepa stats.current prices. Common Keepa indexes:
+    AMAZON=0, NEW=1, BUY_BOX_SHIPPING=18.
+    """
+    current = (product.get("stats") or {}).get("current") or []
+
+    for index, label in [(18, "BUY_BOX_SHIPPING"), (1, "NEW"), (0, "AMAZON")]:
+        if len(current) <= index:
+            continue
+
+        price = cents_to_dollars(current[index])
+        if price:
+            print(f"  {product.get('asin', '?')} price from stats.current {label}: ${price:.2f}")
+            return price
+
+    return None
+
+
+def price_from_data(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "AMAZON")):
+    """Fallback to Keepa data arrays if stats.current is unavailable."""
     for key in price_keys:
         arr = product_data.get(key)
         if arr is None or not hasattr(arr, "__len__") or len(arr) == 0:
@@ -47,13 +80,18 @@ def latest_positive_price(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "
             except (TypeError, ValueError):
                 continue
 
-            if not np.isnan(value) and value > 0:
+            # Keepa arrays can include timestamps. Keep only realistic cent prices.
+            if not np.isnan(value) and 0 < value < 1_000_000:
                 valid_prices.append(value)
 
         if valid_prices:
             return valid_prices[-1] / 100
 
     return None
+
+
+def get_current_price(product):
+    return price_from_stats(product) or price_from_data(product.get("data", {}) or {})
 
 
 def latest_positive_value(product_data, key, divisor=1, decimals=None):
@@ -173,18 +211,21 @@ def main():
     starting_tokens = api.tokens_left
     print(f"Available tokens: {starting_tokens}")
     print(f"MAX_ASINS: {MAX_ASINS}")
+    print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
+
+    min_price_cents = int(MIN_PRICE * 100) + 1
+    max_price_cents = int(MAX_PRICE * 100)
 
     # Keepa Product Finder does the broad video/product screen.
     # The Python post-filter below separates Main videos from Influencer videos.
-    # Do not include domainId here. The keepa Python ProductParams model rejects it.
     product_params = {
         "hasMainVideo": True,
         "videoCount_gte": 1,
         "videoCount_lte": 5,
         "current_RATING_gte": 40,
         "monthlySold_gte": 10,
-        "current_BUY_BOX_SHIPPING_gte": 2000,
-        "current_BUY_BOX_SHIPPING_lte": 6000,
+        "current_BUY_BOX_SHIPPING_gte": min_price_cents,
+        "current_BUY_BOX_SHIPPING_lte": max_price_cents,
         "sort": [["monthlySold", "desc"]],
     }
 
@@ -224,11 +265,17 @@ def main():
                 print(f"Skipping {asin} - {influencer_count} influencer videos")
                 continue
 
-            product_data = product.get("data", {})
-            buybox_price = latest_positive_price(product_data)
+            product_data = product.get("data", {}) or {}
+            buybox_price = get_current_price(product)
 
-            if buybox_price is None or buybox_price < 5:
-                print(f"Skipping {asin} - price missing or under $5")
+            if buybox_price is None:
+                print(f"Skipping {asin} - price missing")
+                print(f"  stats.current sample: {(product.get('stats') or {}).get('current', [])[:20]}")
+                print(f"  data keys sample: {list(product_data.keys())[:20]}")
+                continue
+
+            if buybox_price <= MIN_PRICE or buybox_price > MAX_PRICE:
+                print(f"Skipping {asin} - price ${buybox_price:.2f} outside range")
                 continue
 
             monthly_units = product.get("monthlySold", 0) or 0

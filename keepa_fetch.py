@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import keepa
 import numpy as np
@@ -27,12 +27,29 @@ MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_
 MIN_PRICE = env_float("MIN_PRICE", 25)
 MAX_PRICE = env_float("MAX_PRICE", 100)
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
-MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 5)
+MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 2)  # less than 3 total videos
+MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 2)
+NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 
 KEEPA_API_KEY = os.environ["KEEPA_API_KEY"]
 CREDENTIAL_ID = os.environ["CREATORS_CREDENTIAL_ID"]
 CREDENTIAL_SECRET = os.environ["CREATORS_CREDENTIAL_SECRET"]
 PARTNER_TAG = os.getenv("AFFILIATE_TAG") or "influencer-20"
+
+KEEPA_EPOCH = datetime(2011, 1, 1, tzinfo=timezone.utc)
+
+
+def keepa_minutes_to_datetime(value):
+    """Convert Keepa minutes since 2011-01-01 to a UTC datetime."""
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    if value <= 0:
+        return None
+
+    return KEEPA_EPOCH + timedelta(minutes=value)
 
 
 def cents_to_dollars(value):
@@ -212,16 +229,19 @@ def main():
     print(f"Available tokens: {starting_tokens}")
     print(f"MAX_ASINS: {MAX_ASINS}")
     print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
+    print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
+    print(f"New product window: {NEW_PRODUCT_DAYS} days")
 
     min_price_cents = int(MIN_PRICE * 100) + 1
     max_price_cents = int(MAX_PRICE * 100)
+    now_utc = datetime.now(timezone.utc)
 
     # Keepa Product Finder does the broad video/product screen.
-    # The Python post-filter below separates Main videos from Influencer videos.
+    # The Python post-filter below is the final gate for actual video counts.
     product_params = {
         "hasMainVideo": True,
         "videoCount_gte": 1,
-        "videoCount_lte": 5,
+        "videoCount_lte": MAX_TOTAL_VIDEOS,
         "current_RATING_gte": 40,
         "monthlySold_gte": 10,
         "current_BUY_BOX_SHIPPING_gte": min_price_cents,
@@ -236,7 +256,7 @@ def main():
 
     if not asins:
         output = {
-            "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
             "total": 0,
             "prospects": [],
         }
@@ -256,6 +276,11 @@ def main():
         try:
             videos = product.get("videos") or []
             main_count, influencer_count, other_video_count = classify_videos(videos)
+            total_video_count = main_count + influencer_count + other_video_count
+
+            if total_video_count > MAX_TOTAL_VIDEOS:
+                print(f"Skipping {asin} - {total_video_count} total videos")
+                continue
 
             if main_count < 1:
                 print(f"Skipping {asin} - no creator: Main video found")
@@ -294,6 +319,12 @@ def main():
             rating = latest_positive_value(product_data, "RATING", divisor=10, decimals=1)
             review_count = latest_positive_value(product_data, "COUNT_REVIEWS")
 
+            listed_since_raw = product.get("listedSince", None)
+            listed_since_dt = keepa_minutes_to_datetime(listed_since_raw)
+            listed_since_iso = listed_since_dt.strftime("%Y-%m-%d") if listed_since_dt else ""
+            age_days = (now_utc - listed_since_dt).days if listed_since_dt else None
+            is_new_90 = age_days is not None and age_days <= NEW_PRODUCT_DAYS
+
             brand = product.get("brand", "") or ""
             brand_store_name = product.get("brandStoreUrlName", "") or ""
 
@@ -309,7 +340,7 @@ def main():
                 "monthly_revenue": round(monthly_revenue, 2),
                 "rating": rating,
                 "review_count": int(review_count) if review_count else None,
-                "video_count": main_count + influencer_count + other_video_count,
+                "video_count": total_video_count,
                 "main_video_count": main_count,
                 "influencer_count": influencer_count,
                 "other_video_count": other_video_count,
@@ -321,7 +352,10 @@ def main():
                 "accelerating": accelerating,
                 "has_aplus": product.get("hasAPlus", False),
                 "has_aplus_from_manufacturer": product.get("hasAPlusFromManufacturer", False),
-                "listed_since": product.get("listedSince", None),
+                "listed_since": listed_since_raw,
+                "listed_since_iso": listed_since_iso,
+                "age_days": age_days,
+                "is_new_90": is_new_90,
             }
 
         except Exception as exc:
@@ -334,9 +368,16 @@ def main():
 
     results = list(keepa_data.values())
     output = {
-        "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
-        "prospects": sorted(results, key=lambda x: x["monthly_revenue"], reverse=True),
+        "prospects": sorted(
+            results,
+            key=lambda x: (
+                0 if x.get("is_new_90") else 1,
+                x.get("age_days") if x.get("age_days") is not None else 999999,
+                -x.get("monthly_revenue", 0),
+            ),
+        ),
     }
 
     with open("data.json", "w", encoding="utf-8") as f:

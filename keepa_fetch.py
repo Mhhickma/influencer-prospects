@@ -22,7 +22,7 @@ def env_float(name, default):
     return float(value)
 
 
-DOMAIN_ID = 1  # Amazon US
+DOMAIN = "US"
 MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
 MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 5)
@@ -176,8 +176,8 @@ def main():
 
     # Keepa Product Finder does the broad video/product screen.
     # The Python post-filter below separates Main videos from Influencer videos.
+    # Do not include domainId here. The keepa Python ProductParams model rejects it.
     product_params = {
-        "domainId": DOMAIN_ID,
         "hasMainVideo": True,
         "videoCount_gte": 1,
         "videoCount_lte": 5,
@@ -189,7 +189,7 @@ def main():
     }
 
     print("Querying Keepa product finder...")
-    asins = api.product_finder(product_params, n_products=MAX_ASINS) or []
+    asins = api.product_finder(product_params, n_products=MAX_ASINS, domain=DOMAIN) or []
     asins = asins[:MAX_ASINS]
     print(f"Found {len(asins)} ASINs")
 
@@ -205,7 +205,7 @@ def main():
         return
 
     print("Querying full Keepa product data...")
-    products = api.query(asins, history=True, videos=True, stats=90) or []
+    products = api.query(asins, history=True, videos=True, stats=90, domain=DOMAIN) or []
 
     keepa_data = {}
 

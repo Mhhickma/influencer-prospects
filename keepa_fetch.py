@@ -8,15 +8,29 @@ from amazon_creatorsapi import AmazonCreatorsApi, Country
 from amazon_creatorsapi.models import GetItemsResource
 
 
+def env_int(name, default):
+    value = os.getenv(name)
+    if value is None or str(value).strip() == "":
+        return default
+    return int(value)
+
+
+def env_float(name, default):
+    value = os.getenv(name)
+    if value is None or str(value).strip() == "":
+        return default
+    return float(value)
+
+
 DOMAIN_ID = 1  # Amazon US
-MAX_ASINS = int(os.getenv("MAX_ASINS", "8"))  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
-MIN_MONTHLY_REVENUE = float(os.getenv("MIN_MONTHLY_REVENUE", "5000"))
-MAX_INFLUENCER_VIDEOS = int(os.getenv("MAX_INFLUENCER_VIDEOS", "5"))
+MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
+MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
+MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 5)
 
 KEEPA_API_KEY = os.environ["KEEPA_API_KEY"]
 CREDENTIAL_ID = os.environ["CREATORS_CREDENTIAL_ID"]
 CREDENTIAL_SECRET = os.environ["CREATORS_CREDENTIAL_SECRET"]
-PARTNER_TAG = os.getenv("AFFILIATE_TAG", "influencer-20")
+PARTNER_TAG = os.getenv("AFFILIATE_TAG") or "influencer-20"
 
 
 def latest_positive_price(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "AMAZON")):

@@ -22,6 +22,19 @@ def env_float(name, default):
     return float(value)
 
 
+def env_int_list(name, default=None):
+    value = os.getenv(name)
+    if value is None or str(value).strip() == "":
+        return default or []
+
+    cleaned = []
+    for item in str(value).replace(";", ",").split(","):
+        item = item.strip()
+        if item:
+            cleaned.append(int(item))
+    return cleaned
+
+
 DOMAIN = "US"
 MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
 MIN_PRICE = env_float("MIN_PRICE", 25)
@@ -30,6 +43,23 @@ MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
 MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 2)  # less than 3 total videos
 MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 2)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
+
+# Amazon US root category IDs used by Keepa Product Finder.
+DEFAULT_INCLUDED_CATEGORY_IDS = [
+    228013,      # Tools & Home Improvement
+    3375301,     # Sports & Outdoors
+    261953301,   # Pet Supplies
+    2972638011,  # Patio, Lawn & Garden
+    1064954,     # Office Products
+    16310091,    # Industrial & Scientific
+    1055398,     # Home & Kitchen
+    172282,      # Electronics
+    2335752011,  # Cell Phones & Accessories
+    2619525011,  # Appliances
+    2102313011,  # Amazon Devices & Accessories
+]
+
+INCLUDED_CATEGORY_IDS = env_int_list("INCLUDED_CATEGORY_IDS", DEFAULT_INCLUDED_CATEGORY_IDS)
 
 KEEPA_API_KEY = os.environ["KEEPA_API_KEY"]
 CREDENTIAL_ID = os.environ["CREATORS_CREDENTIAL_ID"]
@@ -231,14 +261,16 @@ def main():
     print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
     print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
     print(f"New product window: {NEW_PRODUCT_DAYS} days")
+    print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
 
     min_price_cents = int(MIN_PRICE * 100) + 1
     max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
 
-    # Keepa Product Finder does the broad video/product screen.
-    # The Python post-filter below is the final gate for actual video counts.
+    # Keepa Product Finder now searches only the selected root categories.
+    # The Python post-filter below is still the final gate for actual video counts.
     product_params = {
+        "categories_include": INCLUDED_CATEGORY_IDS,
         "hasMainVideo": True,
         "videoCount_gte": 1,
         "videoCount_lte": MAX_TOTAL_VIDEOS,
@@ -327,6 +359,8 @@ def main():
 
             brand = product.get("brand", "") or ""
             brand_store_name = product.get("brandStoreUrlName", "") or ""
+            root_category = product.get("rootCategory")
+            categories = product.get("categories") or []
 
             keepa_data[asin] = {
                 "asin": asin,
@@ -356,6 +390,8 @@ def main():
                 "listed_since_iso": listed_since_iso,
                 "age_days": age_days,
                 "is_new_90": is_new_90,
+                "root_category": root_category,
+                "categories": categories,
             }
 
         except Exception as exc:
@@ -370,6 +406,7 @@ def main():
     output = {
         "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
+        "included_category_ids": INCLUDED_CATEGORY_IDS,
         "prospects": sorted(
             results,
             key=lambda x: (

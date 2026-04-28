@@ -4,8 +4,6 @@ from datetime import datetime, timedelta, timezone
 
 import keepa
 import numpy as np
-from amazon_creatorsapi import AmazonCreatorsApi, Country
-from amazon_creatorsapi.models import GetItemsResource
 
 
 def env_int(name, default):
@@ -62,9 +60,6 @@ DEFAULT_INCLUDED_CATEGORY_IDS = [
 INCLUDED_CATEGORY_IDS = env_int_list("INCLUDED_CATEGORY_IDS", DEFAULT_INCLUDED_CATEGORY_IDS)
 
 KEEPA_API_KEY = os.environ["KEEPA_API_KEY"]
-CREDENTIAL_ID = os.environ["CREATORS_CREDENTIAL_ID"]
-CREDENTIAL_SECRET = os.environ["CREATORS_CREDENTIAL_SECRET"]
-PARTNER_TAG = os.getenv("AFFILIATE_TAG") or "influencer-20"
 
 KEEPA_EPOCH = datetime(2011, 1, 1, tzinfo=timezone.utc)
 
@@ -189,6 +184,24 @@ def classify_videos(videos):
     return main_count, influencer_count, other_count
 
 
+def get_official_video_count(product, fallback_count):
+    """
+    Prefer Keepa's official product-level videoCount field.
+    This matches the Keepa page's 'Videos - Video Count' better than counting the returned videos list.
+    """
+    for key in ("videoCount", "videosCount"):
+        value = product.get(key)
+        if value is None:
+            continue
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            continue
+        if value >= 0:
+            return value
+    return fallback_count
+
+
 def get_sales_trend(product):
     trend_pct = product.get("deltaPercent90_monthlySold", 0) or 0
     if trend_pct > 10:
@@ -198,57 +211,6 @@ def get_sales_trend(product):
     else:
         trend = "Stable"
     return trend, trend_pct
-
-
-def fetch_amazon_images(keepa_data):
-    """Use Amazon Creators API images so the dashboard avoids blocked direct CDN URLs."""
-    if not keepa_data:
-        return
-
-    print("Fetching images from Amazon Creators API...")
-
-    try:
-        amazon = AmazonCreatorsApi(
-            credential_id=CREDENTIAL_ID,
-            credential_secret=CREDENTIAL_SECRET,
-            version="3.1",
-            tag=PARTNER_TAG,
-            country=Country.US,
-        )
-
-        resources = [
-            GetItemsResource.IMAGES_DOT_PRIMARY_DOT_LARGE,
-            GetItemsResource.ITEM_INFO_DOT_TITLE,
-        ]
-
-        asin_list = list(keepa_data.keys())
-
-        for i in range(0, len(asin_list), 10):
-            batch = asin_list[i:i + 10]
-            print(f"  Batch {i // 10 + 1}: {len(batch)} ASINs...")
-
-            try:
-                items = amazon.get_items(batch, resources=resources)
-
-                for item in items:
-                    asin = getattr(item, "asin", None)
-                    if asin not in keepa_data:
-                        continue
-
-                    try:
-                        image_url = item.images.primary.large.url
-                    except Exception:
-                        image_url = ""
-
-                    if image_url:
-                        keepa_data[asin]["image_url"] = image_url
-                        print(f"    Got image for {asin}")
-
-            except Exception as exc:
-                print(f"  Batch failed: {exc}")
-
-    except Exception as exc:
-        print(f"Amazon Creators API error: {exc}")
 
 
 def main():
@@ -262,15 +224,16 @@ def main():
     print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
     print(f"New product window: {NEW_PRODUCT_DAYS} days")
     print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
+    print("A+ Content required: True")
 
     min_price_cents = int(MIN_PRICE * 100) + 1
     max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
 
-    # Keepa Product Finder now searches only the selected root categories.
-    # The Python post-filter below is still the final gate for actual video counts.
+    # Keepa Product Finder searches only selected root categories and requires A+ content before pulling ASINs.
     product_params = {
         "categories_include": INCLUDED_CATEGORY_IDS,
+        "hasAPlus": True,
         "hasMainVideo": True,
         "videoCount_gte": 1,
         "videoCount_lte": MAX_TOTAL_VIDEOS,
@@ -290,6 +253,8 @@ def main():
         output = {
             "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
             "total": 0,
+            "included_category_ids": INCLUDED_CATEGORY_IDS,
+            "aplus_required": True,
             "prospects": [],
         }
         with open("data.json", "w", encoding="utf-8") as f:
@@ -306,12 +271,17 @@ def main():
         asin = product.get("asin", "?")
 
         try:
+            if not product.get("hasAPlus", False):
+                print(f"Skipping {asin} - no A+ content")
+                continue
+
             videos = product.get("videos") or []
             main_count, influencer_count, other_video_count = classify_videos(videos)
-            total_video_count = main_count + influencer_count + other_video_count
+            counted_video_total = main_count + influencer_count + other_video_count
+            official_video_count = get_official_video_count(product, counted_video_total)
 
-            if total_video_count > MAX_TOTAL_VIDEOS:
-                print(f"Skipping {asin} - {total_video_count} total videos")
+            if official_video_count > MAX_TOTAL_VIDEOS:
+                print(f"Skipping {asin} - official videoCount is {official_video_count}")
                 continue
 
             if main_count < 1:
@@ -328,7 +298,8 @@ def main():
             if buybox_price is None:
                 print(f"Skipping {asin} - price missing")
                 print(f"  stats.current sample: {(product.get('stats') or {}).get('current', [])[:20]}")
-                print(f"  data keys sample: {list(product_data.keys())[:20]}")
+                print(f"  product videoCount field: {product.get('videoCount')}")
+                print(f"  counted video total: {counted_video_total}")
                 continue
 
             if buybox_price <= MIN_PRICE or buybox_price > MAX_PRICE:
@@ -374,7 +345,8 @@ def main():
                 "monthly_revenue": round(monthly_revenue, 2),
                 "rating": rating,
                 "review_count": int(review_count) if review_count else None,
-                "video_count": total_video_count,
+                "video_count": official_video_count,
+                "counted_video_total": counted_video_total,
                 "main_video_count": main_count,
                 "influencer_count": influencer_count,
                 "other_video_count": other_video_count,
@@ -400,13 +372,12 @@ def main():
 
     print(f"\nKeepa filtered to {len(keepa_data)} prospects")
 
-    fetch_amazon_images(keepa_data)
-
     results = list(keepa_data.values())
     output = {
         "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
         "included_category_ids": INCLUDED_CATEGORY_IDS,
+        "aplus_required": True,
         "prospects": sorted(
             results,
             key=lambda x: (

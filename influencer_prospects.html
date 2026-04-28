@@ -46,7 +46,9 @@
   .trend-growing{background:rgba(22,163,74,.10);color:var(--green);border:1px solid rgba(22,163,74,.25)}
   .trend-declining{background:rgba(220,38,38,.10);color:var(--red);border:1px solid rgba(220,38,38,.25)}
   .trend-stable{background:rgba(217,119,6,.10);color:var(--yellow);border:1px solid rgba(217,119,6,.25)}
-  .accel-tag{font-family:var(--mono);font-size:10px;color:var(--accent2);background:rgba(232,135,74,.1);border:1px solid rgba(232,135,74,.25);border-radius:4px;padding:2px 7px;display:inline-block;margin-left:6px}
+  .accel-tag,.new-tag{font-family:var(--mono);font-size:10px;border-radius:4px;padding:2px 7px;display:inline-block;margin-left:6px}
+  .accel-tag{color:var(--accent2);background:rgba(232,135,74,.1);border:1px solid rgba(232,135,74,.25)}
+  .new-tag{color:var(--green);background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25)}
   .card-footer{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
   .btn{flex:1;padding:8px;border-radius:7px;font-family:var(--mono);font-size:11px;text-align:center;text-decoration:none;font-weight:500;transition:opacity .2s;cursor:pointer;border:none}
   .btn:hover{opacity:.8}
@@ -73,6 +75,7 @@
 
 <div class="controls">
   <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('new90',this)">🆕 New 90 Days</button>
   <button class="filter-btn" onclick="setFilter('Growing',this)">📈 Growing</button>
   <button class="filter-btn" onclick="setFilter('Stable',this)">➡️ Stable</button>
   <button class="filter-btn" onclick="setFilter('Declining',this)">📉 Declining</button>
@@ -108,8 +111,14 @@ function renderCards(data) {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = '';
   const filtered = data.filter(p => {
-    const mf = activeFilter === 'all' ? true : activeFilter === 'accelerating' ? p.accelerating : p.sales_trend === activeFilter;
-    const ms = searchTerm === '' ? true : (p.brand||'').toLowerCase().includes(searchTerm)||(p.title||'').toLowerCase().includes(searchTerm);
+    const mf = activeFilter === 'all'
+      ? true
+      : activeFilter === 'accelerating'
+        ? p.accelerating
+        : activeFilter === 'new90'
+          ? p.is_new_90
+          : p.sales_trend === activeFilter;
+    const ms = searchTerm === '' ? true : (p.brand||'').toLowerCase().includes(searchTerm)||(p.title||'').toLowerCase().includes(searchTerm)||(p.asin||'').toLowerCase().includes(searchTerm);
     return mf && ms;
   });
   document.getElementById('stat-total').textContent = filtered.length;
@@ -129,6 +138,7 @@ function renderCards(data) {
     const mainVideos = p.main_video_count||0;
     const otherVideos = p.other_video_count||0;
     const totalVideos = p.video_count ?? (mainVideos + inf + otherVideos);
+    const ageLabel = p.age_days === null || p.age_days === undefined ? '—' : `${p.age_days}d`;
     const infColor = inf===0?'var(--green)':inf<=2?'var(--yellow)':'var(--red)';
     const infLabel = inf===0?'none yet':inf===1?'1 so far':inf+' so far';
 
@@ -163,6 +173,14 @@ function renderCards(data) {
             <div class="metric-value">${(p.monthly_units||0).toLocaleString()}</div>
           </div>
           <div class="metric">
+            <div class="metric-label">Age</div>
+            <div class="metric-value ${p.is_new_90?'green':''}">${ageLabel}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Listed</div>
+            <div class="metric-value">${p.listed_since_iso||'—'}</div>
+          </div>
+          <div class="metric">
             <div class="metric-label">Rating</div>
             <div class="metric-value ${ratingColor}">★ ${p.rating||'—'} <span style="color:var(--muted);font-size:10px">(${(p.review_count||0).toLocaleString()})</span></div>
           </div>
@@ -192,8 +210,9 @@ function renderCards(data) {
             <div class="metric-value">${otherVideos}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span class="trend-badge ${trendClass}">${trendIcon} ${p.sales_trend} ${trendSign}${p.sales_trend_pct||0}%</span>
+          ${p.is_new_90?'<span class="new-tag">🆕 new 90d</span>':''}
           ${p.accelerating?'<span class="accel-tag">⚡ accel</span>':''}
         </div>
         <div class="card-footer">

@@ -1,135 +1,113 @@
-import keepa
 import json
 import os
+from datetime import datetime, timezone
+
+import keepa
 import numpy as np
-from datetime import datetime
 from amazon_creatorsapi import AmazonCreatorsApi, Country
 from amazon_creatorsapi.models import GetItemsResource
 
-api = keepa.Keepa(os.environ["KEEPA_API_KEY"])
 
-CREDENTIAL_ID     = os.environ["CREATORS_CREDENTIAL_ID"]
+DOMAIN_ID = 1  # Amazon US
+MAX_ASINS = int(os.getenv("MAX_ASINS", "8"))  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
+MIN_MONTHLY_REVENUE = float(os.getenv("MIN_MONTHLY_REVENUE", "5000"))
+MAX_INFLUENCER_VIDEOS = int(os.getenv("MAX_INFLUENCER_VIDEOS", "5"))
+
+KEEPA_API_KEY = os.environ["KEEPA_API_KEY"]
+CREDENTIAL_ID = os.environ["CREATORS_CREDENTIAL_ID"]
 CREDENTIAL_SECRET = os.environ["CREATORS_CREDENTIAL_SECRET"]
-PARTNER_TAG       = os.getenv("AFFILIATE_TAG", "influencer-20")
+PARTNER_TAG = os.getenv("AFFILIATE_TAG", "influencer-20")
 
-api.update_status()
-available_tokens = api.tokens_left
-print(f"Available tokens: {available_tokens}")
 
-MAX_ASINS = 8
-
-product_parms = {
-    "hasMainVideo": True,
-    "current_RATING_gte": 40,
-    "monthlySold_gte": 10,
-    "current_BUY_BOX_SHIPPING_gte": 2000,
-    "current_BUY_BOX_SHIPPING_lte": 6000,
-    "videoCount_lte": 5,
-    "videoCount_gte": 1,
-    "sort": [["monthlySold", "desc"]],
-}
-
-print("Querying Keepa product finder...")
-asins = api.product_finder(product_parms, n_products=MAX_ASINS)
-print(f"Found {len(asins)} ASINs")
-asins = asins[:MAX_ASINS]
-
-products = api.query(asins, history=True, videos=True, stats=90)
-
-keepa_data = {}
-for p in products:
-    try:
-        videos = p.get("videos") or []
-
-        has_main = any(
-            isinstance(v, dict) and str(v.get("creator", "")).lower() == "main"
-            for v in videos
-        )
-        if not has_main:
+def latest_positive_price(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "AMAZON")):
+    """Return the latest positive price in dollars, using fallback Keepa price arrays."""
+    for key in price_keys:
+        arr = product_data.get(key)
+        if arr is None or not hasattr(arr, "__len__") or len(arr) == 0:
             continue
 
-        influencer_count = sum(
-            1 for v in videos
-            if isinstance(v, dict) and str(v.get("creator", "")).lower() == "influencer"
-        )
-        if influencer_count > 5:
-            print(f"Skipping {p.get('asin')} - {influencer_count} influencer videos")
+        valid_prices = []
+        for value in arr:
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                continue
+
+            if not np.isnan(value) and value > 0:
+                valid_prices.append(value)
+
+        if valid_prices:
+            return valid_prices[-1] / 100
+
+    return None
+
+
+def latest_positive_value(product_data, key, divisor=1, decimals=None):
+    """Return latest positive numeric value from a Keepa data array."""
+    arr = product_data.get(key)
+    if arr is None or not hasattr(arr, "__len__") or len(arr) == 0:
+        return None
+
+    valid_values = []
+    for value in arr:
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
             continue
 
-        data = p.get("data", {})
-        bb_price = None
-        for key in ["BUY_BOX_SHIPPING", "NEW", "AMAZON"]:
-            arr = data.get(key)
-            if arr is not None and hasattr(arr, "__len__") and len(arr) > 0:
-                valid = [float(x) for x in arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
-                if valid:
-                    bb_price = valid[-1] / 100
-                    break
+        if not np.isnan(value) and value > 0:
+            valid_values.append(value)
 
-        if bb_price is None or bb_price < 5:
+    if not valid_values:
+        return None
+
+    result = valid_values[-1] / divisor
+    return round(result, decimals) if decimals is not None else result
+
+
+def classify_videos(videos):
+    """
+    Keepa video entries use the 'creator' key.
+    Common values include 'main' and 'influencer'.
+    """
+    main_count = 0
+    influencer_count = 0
+    other_count = 0
+
+    for video in videos or []:
+        if not isinstance(video, dict):
             continue
 
-        monthly_units = p.get("monthlySold", 0) or 0
-        monthly_revenue = bb_price * monthly_units
+        creator = str(video.get("creator", "")).strip().lower()
 
-        if monthly_revenue < 5000:
-            continue
+        if creator == "influencer":
+            influencer_count += 1
+        elif creator == "main":
+            main_count += 1
+        else:
+            other_count += 1
 
-        trend_pct = p.get("deltaPercent90_monthlySold", 0) or 0
-        sales_trend = "Growing" if trend_pct > 10 else "Declining" if trend_pct < -10 else "Stable"
+    return main_count, influencer_count, other_count
 
-        drops_90 = p.get("salesRankDrops90", 0) or 0
-        drops_30 = p.get("salesRankDrops30", 0) or 0
-        accelerating = bool(drops_30 > (drops_90 * 0.4)) if drops_90 > 0 else False
 
-        rating = None
-        rating_arr = data.get("RATING")
-        if rating_arr is not None and len(rating_arr) > 0:
-            valid_r = [float(x) for x in rating_arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
-            if valid_r:
-                rating = round(valid_r[-1] / 10, 1)
+def get_sales_trend(product):
+    trend_pct = product.get("deltaPercent90_monthlySold", 0) or 0
+    if trend_pct > 10:
+        trend = "Growing"
+    elif trend_pct < -10:
+        trend = "Declining"
+    else:
+        trend = "Stable"
+    return trend, trend_pct
 
-        review_count = None
-        review_arr = data.get("COUNT_REVIEWS")
-        if review_arr is not None and len(review_arr) > 0:
-            valid_rv = [int(x) for x in review_arr if x is not None and not np.isnan(float(x)) and float(x) > 0]
-            if valid_rv:
-                review_count = valid_rv[-1]
 
-        main_count = sum(1 for v in videos if isinstance(v, dict) and str(v.get("creator", "")).lower() == "main")
+def fetch_amazon_images(keepa_data):
+    """Use Amazon Creators API images so the dashboard avoids blocked direct CDN URLs."""
+    if not keepa_data:
+        return
 
-        keepa_data[p["asin"]] = {
-            "asin": p["asin"],
-            "title": p.get("title", ""),
-            "brand": p.get("brand", ""),
-            "brand_store_url": f"https://www.amazon.com/stores/{p.get('brandStoreUrlName', '')}",
-            "amazon_url": f"https://www.amazon.com/dp/{p['asin']}",
-            "image_url": "",
-            "buybox_price": round(bb_price, 2),
-            "monthly_units": monthly_units,
-            "monthly_revenue": round(monthly_revenue, 2),
-            "rating": rating,
-            "review_count": review_count,
-            "video_count": main_count,
-            "influencer_count": influencer_count,
-            "sales_trend": sales_trend,
-            "sales_trend_pct": trend_pct,
-            "sales_rank_drops_90": drops_90,
-            "sales_rank_drops_30": drops_30,
-            "daily_sales": round(drops_90 / 90) if drops_90 else 0,
-            "accelerating": accelerating,
-            "has_aplus": p.get("hasAPlus", False),
-            "listed_since": p.get("listedSince", None),
-        }
-
-    except Exception as e:
-        print(f"Skipping {p.get('asin', '?')}: {e}")
-        continue
-
-print(f"\nKeepa filtered to {len(keepa_data)} prospects")
-
-if keepa_data:
     print("Fetching images from Amazon Creators API...")
+
     try:
         amazon = AmazonCreatorsApi(
             credential_id=CREDENTIAL_ID,
@@ -138,42 +116,175 @@ if keepa_data:
             tag=PARTNER_TAG,
             country=Country.US,
         )
+
         resources = [
             GetItemsResource.IMAGES_DOT_PRIMARY_DOT_LARGE,
             GetItemsResource.ITEM_INFO_DOT_TITLE,
         ]
+
         asin_list = list(keepa_data.keys())
+
         for i in range(0, len(asin_list), 10):
-            batch = asin_list[i:i+10]
-            print(f"  Batch {i//10+1}: {len(batch)} ASINs...")
+            batch = asin_list[i:i + 10]
+            print(f"  Batch {i // 10 + 1}: {len(batch)} ASINs...")
+
             try:
                 items = amazon.get_items(batch, resources=resources)
+
                 for item in items:
-                    asin = item.asin
-                    if asin in keepa_data:
-                        try:
-                            img = item.images.primary.large.url
-                            if img:
-                                keepa_data[asin]["image_url"] = img
-                                print(f"    Got image for {asin}")
-                        except:
-                            pass
-            except Exception as e:
-                print(f"  Batch failed: {e}")
-    except Exception as e:
-        print(f"Amazon Creators API error: {e}")
+                    asin = getattr(item, "asin", None)
+                    if asin not in keepa_data:
+                        continue
 
-results = list(keepa_data.values())
+                    try:
+                        image_url = item.images.primary.large.url
+                    except Exception:
+                        image_url = ""
 
-output = {
-    "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-    "total": len(results),
-    "prospects": sorted(results, key=lambda x: x["monthly_revenue"], reverse=True)
-}
+                    if image_url:
+                        keepa_data[asin]["image_url"] = image_url
+                        print(f"    Got image for {asin}")
 
-with open("data.json", "w") as f:
-    json.dump(output, f, indent=2)
+            except Exception as exc:
+                print(f"  Batch failed: {exc}")
 
-tokens_used = available_tokens - api.tokens_left
-print(f"\nSaved {len(results)} prospects to data.json")
-print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")
+    except Exception as exc:
+        print(f"Amazon Creators API error: {exc}")
+
+
+def main():
+    api = keepa.Keepa(KEEPA_API_KEY)
+
+    api.update_status()
+    starting_tokens = api.tokens_left
+    print(f"Available tokens: {starting_tokens}")
+    print(f"MAX_ASINS: {MAX_ASINS}")
+
+    # Keepa Product Finder does the broad video/product screen.
+    # The Python post-filter below separates Main videos from Influencer videos.
+    product_params = {
+        "domainId": DOMAIN_ID,
+        "hasMainVideo": True,
+        "videoCount_gte": 1,
+        "videoCount_lte": 5,
+        "current_RATING_gte": 40,
+        "monthlySold_gte": 10,
+        "current_BUY_BOX_SHIPPING_gte": 2000,
+        "current_BUY_BOX_SHIPPING_lte": 6000,
+        "sort": [["monthlySold", "desc"]],
+    }
+
+    print("Querying Keepa product finder...")
+    asins = api.product_finder(product_params, n_products=MAX_ASINS) or []
+    asins = asins[:MAX_ASINS]
+    print(f"Found {len(asins)} ASINs")
+
+    if not asins:
+        output = {
+            "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "total": 0,
+            "prospects": [],
+        }
+        with open("data.json", "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2)
+        print("No ASINs found. Saved empty data.json.")
+        return
+
+    print("Querying full Keepa product data...")
+    products = api.query(asins, history=True, videos=True, stats=90) or []
+
+    keepa_data = {}
+
+    for product in products:
+        asin = product.get("asin", "?")
+
+        try:
+            videos = product.get("videos") or []
+            main_count, influencer_count, other_video_count = classify_videos(videos)
+
+            if main_count < 1:
+                print(f"Skipping {asin} - no creator: Main video found")
+                continue
+
+            if influencer_count > MAX_INFLUENCER_VIDEOS:
+                print(f"Skipping {asin} - {influencer_count} influencer videos")
+                continue
+
+            product_data = product.get("data", {})
+            buybox_price = latest_positive_price(product_data)
+
+            if buybox_price is None or buybox_price < 5:
+                print(f"Skipping {asin} - price missing or under $5")
+                continue
+
+            monthly_units = product.get("monthlySold", 0) or 0
+            monthly_revenue = buybox_price * monthly_units
+
+            if monthly_revenue < MIN_MONTHLY_REVENUE:
+                print(f"Skipping {asin} - monthly revenue ${monthly_revenue:,.2f}")
+                continue
+
+            sales_trend, trend_pct = get_sales_trend(product)
+
+            drops_90 = product.get("salesRankDrops90", 0) or 0
+            drops_30 = product.get("salesRankDrops30", 0) or 0
+            accelerating = bool(drops_30 > (drops_90 * 0.4)) if drops_90 > 0 else False
+
+            rating = latest_positive_value(product_data, "RATING", divisor=10, decimals=1)
+            review_count = latest_positive_value(product_data, "COUNT_REVIEWS")
+
+            brand = product.get("brand", "") or ""
+            brand_store_name = product.get("brandStoreUrlName", "") or ""
+
+            keepa_data[asin] = {
+                "asin": asin,
+                "title": product.get("title", "") or "",
+                "brand": brand,
+                "brand_store_url": f"https://www.amazon.com/stores/{brand_store_name}" if brand_store_name else "",
+                "amazon_url": f"https://www.amazon.com/dp/{asin}",
+                "image_url": "",
+                "buybox_price": round(buybox_price, 2),
+                "monthly_units": monthly_units,
+                "monthly_revenue": round(monthly_revenue, 2),
+                "rating": rating,
+                "review_count": int(review_count) if review_count else None,
+                "video_count": main_count + influencer_count + other_video_count,
+                "main_video_count": main_count,
+                "influencer_count": influencer_count,
+                "other_video_count": other_video_count,
+                "sales_trend": sales_trend,
+                "sales_trend_pct": trend_pct,
+                "sales_rank_drops_90": drops_90,
+                "sales_rank_drops_30": drops_30,
+                "daily_sales": round(drops_90 / 90) if drops_90 else 0,
+                "accelerating": accelerating,
+                "has_aplus": product.get("hasAPlus", False),
+                "has_aplus_from_manufacturer": product.get("hasAPlusFromManufacturer", False),
+                "listed_since": product.get("listedSince", None),
+            }
+
+        except Exception as exc:
+            print(f"Skipping {asin}: {exc}")
+            continue
+
+    print(f"\nKeepa filtered to {len(keepa_data)} prospects")
+
+    fetch_amazon_images(keepa_data)
+
+    results = list(keepa_data.values())
+    output = {
+        "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "total": len(results),
+        "prospects": sorted(results, key=lambda x: x["monthly_revenue"], reverse=True),
+    }
+
+    with open("data.json", "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2)
+
+    tokens_used = starting_tokens - api.tokens_left
+    print(f"\nSaved {len(results)} prospects to data.json")
+    print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")
+
+
+if __name__ == "__main__":
+    main()

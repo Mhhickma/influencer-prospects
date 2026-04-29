@@ -2,7 +2,7 @@ name: Fetch Keepa Data
 
 on:
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install keepa python-amazon-paapi requests
+        run: pip install keepa python-amazon-paapi
 
       - name: Run Keepa fetch
         env:
@@ -30,7 +30,6 @@ jobs:
           CREATORS_CREDENTIAL_SECRET: ${{ secrets.CREATORS_CREDENTIAL_SECRET }}
           AFFILIATE_TAG: ${{ vars.AFFILIATE_TAG }}
           MAX_ASINS: ${{ vars.MAX_ASINS }}
-          ASIN_SHEET_CSV_URL: ${{ vars.ASIN_SHEET_CSV_URL }}
         run: python keepa_fetch.py
 
       - name: Commit data

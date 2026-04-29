@@ -1,9 +1,12 @@
+import csv
 import json
 import os
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 
 import keepa
 import numpy as np
+import requests
 
 
 def env_int(name, default):
@@ -34,27 +37,27 @@ def env_int_list(name, default=None):
 
 
 DOMAIN = "US"
-MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
+MAX_ASINS = env_int("MAX_ASINS", 5000)
 MIN_PRICE = env_float("MIN_PRICE", 25)
 MAX_PRICE = env_float("MAX_PRICE", 100)
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
-MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 2)  # less than 3 total videos
+MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 2)
 MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 2)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
+ASIN_SHEET_CSV_URL = os.getenv("ASIN_SHEET_CSV_URL", "").strip()
 
-# Amazon US root category IDs used by Keepa Product Finder.
 DEFAULT_INCLUDED_CATEGORY_IDS = [
-    228013,      # Tools & Home Improvement
-    3375301,     # Sports & Outdoors
-    261953301,   # Pet Supplies
-    2972638011,  # Patio, Lawn & Garden
-    1064954,     # Office Products
-    16310091,    # Industrial & Scientific
-    1055398,     # Home & Kitchen
-    172282,      # Electronics
-    2335752011,  # Cell Phones & Accessories
-    2619525011,  # Appliances
-    2102313011,  # Amazon Devices & Accessories
+    228013,
+    3375301,
+    261953301,
+    2972638011,
+    1064954,
+    16310091,
+    1055398,
+    172282,
+    2335752011,
+    2619525011,
+    2102313011,
 ]
 
 INCLUDED_CATEGORY_IDS = env_int_list("INCLUDED_CATEGORY_IDS", DEFAULT_INCLUDED_CATEGORY_IDS)
@@ -65,7 +68,6 @@ KEEPA_EPOCH = datetime(2011, 1, 1, tzinfo=timezone.utc)
 
 
 def keepa_minutes_to_datetime(value):
-    """Convert Keepa minutes since 2011-01-01 to a UTC datetime."""
     try:
         value = int(value)
     except (TypeError, ValueError):
@@ -89,11 +91,55 @@ def cents_to_dollars(value):
     return value / 100
 
 
+def normalize_asin(value):
+    asin = str(value or "").strip().upper()
+    if len(asin) == 10 and asin.isalnum():
+        return asin
+    return ""
+
+
+def load_asins_from_sheet():
+    if not ASIN_SHEET_CSV_URL:
+        return []
+
+    print("Loading ASINs from spreadsheet CSV...")
+    response = requests.get(ASIN_SHEET_CSV_URL, timeout=60)
+    response.raise_for_status()
+
+    text = response.text
+    asins = []
+    seen = set()
+
+    # First try normal CSV headers such as ASIN, asin, or Asin.
+    reader = csv.DictReader(StringIO(text))
+    fieldnames = reader.fieldnames or []
+    asin_field = None
+    for field in fieldnames:
+        if str(field).strip().lower() == "asin":
+            asin_field = field
+            break
+
+    if asin_field:
+        for row in reader:
+            asin = normalize_asin(row.get(asin_field))
+            if asin and asin not in seen:
+                asins.append(asin)
+                seen.add(asin)
+    else:
+        # Fallback: scan every cell for valid 10-character ASINs.
+        reader = csv.reader(StringIO(text))
+        for row in reader:
+            for cell in row:
+                asin = normalize_asin(cell)
+                if asin and asin not in seen:
+                    asins.append(asin)
+                    seen.add(asin)
+
+    print(f"Loaded {len(asins)} unique ASINs from spreadsheet")
+    return asins
+
+
 def price_from_stats(product):
-    """
-    Prefer Keepa stats.current prices. Common Keepa indexes:
-    AMAZON=0, NEW=1, BUY_BOX_SHIPPING=18.
-    """
     current = (product.get("stats") or {}).get("current") or []
 
     for index, label in [(18, "BUY_BOX_SHIPPING"), (1, "NEW"), (0, "AMAZON")]:
@@ -109,7 +155,6 @@ def price_from_stats(product):
 
 
 def price_from_data(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "AMAZON")):
-    """Fallback to Keepa data arrays if stats.current is unavailable."""
     for key in price_keys:
         arr = product_data.get(key)
         if arr is None or not hasattr(arr, "__len__") or len(arr) == 0:
@@ -122,7 +167,6 @@ def price_from_data(product_data, price_keys=("BUY_BOX_SHIPPING", "NEW", "AMAZON
             except (TypeError, ValueError):
                 continue
 
-            # Keepa arrays can include timestamps. Keep only realistic cent prices.
             if not np.isnan(value) and 0 < value < 1_000_000:
                 valid_prices.append(value)
 
@@ -137,7 +181,6 @@ def get_current_price(product):
 
 
 def latest_positive_value(product_data, key, divisor=1, decimals=None):
-    """Return latest positive numeric value from a Keepa data array."""
     arr = product_data.get(key)
     if arr is None or not hasattr(arr, "__len__") or len(arr) == 0:
         return None
@@ -160,10 +203,6 @@ def latest_positive_value(product_data, key, divisor=1, decimals=None):
 
 
 def classify_videos(videos):
-    """
-    Keepa video entries use the 'creator' key.
-    Common values include 'main' and 'influencer'.
-    """
     main_count = 0
     influencer_count = 0
     other_count = 0
@@ -185,10 +224,6 @@ def classify_videos(videos):
 
 
 def get_official_video_count(product, fallback_count):
-    """
-    Prefer Keepa's official product-level videoCount field.
-    This matches the Keepa page's 'Videos - Video Count' better than counting the returned videos list.
-    """
     for key in ("videoCount", "videosCount"):
         value = product.get(key)
         if value is None:
@@ -213,24 +248,16 @@ def get_sales_trend(product):
     return trend, trend_pct
 
 
-def main():
-    api = keepa.Keepa(KEEPA_API_KEY)
-
-    api.update_status()
-    starting_tokens = api.tokens_left
-    print(f"Available tokens: {starting_tokens}")
-    print(f"MAX_ASINS: {MAX_ASINS}")
-    print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
-    print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
-    print(f"New product window: {NEW_PRODUCT_DAYS} days")
-    print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
-    print("A+ Content required: True")
+def get_candidate_asins(api):
+    spreadsheet_asins = load_asins_from_sheet()
+    if spreadsheet_asins:
+        asins = spreadsheet_asins[:MAX_ASINS]
+        print(f"Using spreadsheet ASIN source. Checking {len(asins)} ASINs this run.")
+        return asins
 
     min_price_cents = int(MIN_PRICE * 100) + 1
     max_price_cents = int(MAX_PRICE * 100)
-    now_utc = datetime.now(timezone.utc)
 
-    # Keepa Product Finder searches only selected root categories and requires A+ content before pulling ASINs.
     product_params = {
         "categories_include": INCLUDED_CATEGORY_IDS,
         "hasAPlus": True,
@@ -244,10 +271,29 @@ def main():
         "sort": [["monthlySold", "desc"]],
     }
 
-    print("Querying Keepa product finder...")
+    print("No spreadsheet CSV URL found. Querying Keepa product finder...")
     asins = api.product_finder(product_params, n_products=MAX_ASINS, domain=DOMAIN) or []
     asins = asins[:MAX_ASINS]
-    print(f"Found {len(asins)} ASINs")
+    print(f"Found {len(asins)} ASINs from Product Finder")
+    return asins
+
+
+def main():
+    api = keepa.Keepa(KEEPA_API_KEY)
+
+    api.update_status()
+    starting_tokens = api.tokens_left
+    print(f"Available tokens: {starting_tokens}")
+    print(f"MAX_ASINS: {MAX_ASINS}")
+    print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
+    print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
+    print(f"New product window: {NEW_PRODUCT_DAYS} days")
+    print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
+    print(f"Spreadsheet source enabled: {bool(ASIN_SHEET_CSV_URL)}")
+    print("A+ Content required: True")
+
+    now_utc = datetime.now(timezone.utc)
+    asins = get_candidate_asins(api)
 
     if not asins:
         output = {
@@ -255,6 +301,7 @@ def main():
             "total": 0,
             "included_category_ids": INCLUDED_CATEGORY_IDS,
             "aplus_required": True,
+            "asin_source": "spreadsheet" if ASIN_SHEET_CSV_URL else "product_finder",
             "prospects": [],
         }
         with open("data.json", "w", encoding="utf-8") as f:
@@ -376,8 +423,10 @@ def main():
     output = {
         "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
+        "checked_asins": len(asins),
         "included_category_ids": INCLUDED_CATEGORY_IDS,
         "aplus_required": True,
+        "asin_source": "spreadsheet" if ASIN_SHEET_CSV_URL else "product_finder",
         "prospects": sorted(
             results,
             key=lambda x: (
@@ -393,6 +442,7 @@ def main():
 
     tokens_used = starting_tokens - api.tokens_left
     print(f"\nSaved {len(results)} prospects to data.json")
+    print(f"Checked ASINs: {len(asins)}")
     print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")
 
 

@@ -1,12 +1,24 @@
 name: Fetch Keepa Data
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - keepa_fetch.py
+      - .github/workflows/fetch.yml
   schedule:
     - cron: '0 8 * * *'
   workflow_dispatch:
+    inputs:
+      max_asins:
+        description: 'Maximum ASINs to fetch. Use 39 for an about-50-token test run.'
+        required: false
+        default: '39'
 
 jobs:
   fetch:
+    if: ${{ github.event_name != 'push' || contains(github.event.head_commit.message, '[test-keepa]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,7 +41,7 @@ jobs:
           CREATORS_CREDENTIAL_ID: ${{ secrets.CREATORS_CREDENTIAL_ID }}
           CREATORS_CREDENTIAL_SECRET: ${{ secrets.CREATORS_CREDENTIAL_SECRET }}
           AFFILIATE_TAG: ${{ vars.AFFILIATE_TAG }}
-          MAX_ASINS: ${{ vars.MAX_ASINS }}
+          MAX_ASINS: ${{ github.event_name == 'push' && '39' || github.event_name == 'workflow_dispatch' && inputs.max_asins || vars.MAX_ASINS }}
         run: python keepa_fetch.py
 
       - name: Commit data

@@ -34,12 +34,12 @@ def env_int_list(name, default=None):
 
 
 DOMAIN = "US"
-MAX_ASINS = env_int("MAX_ASINS", 8)  # Use 8 for testing. Set repo variable MAX_ASINS=40 for production.
-MIN_PRICE = env_float("MIN_PRICE", 25)
+MAX_ASINS = env_int("MAX_ASINS", 100)
+MIN_PRICE = env_float("MIN_PRICE", 50)
 MAX_PRICE = env_float("MAX_PRICE", 100)
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
-MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 2)  # less than 3 total videos
-MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 2)
+MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 5)
+MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 5)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 
 # Amazon US root category IDs used by Keepa Product Finder.
@@ -226,22 +226,15 @@ def main():
     print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
     print("A+ Content required: True")
 
-    min_price_cents = int(MIN_PRICE * 100) + 1
-    max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
 
-    # Keepa Product Finder searches only selected root categories and requires A+ content before pulling ASINs.
+    # Keepa Product Finder mirrors the dashboard search, then the results are checked below.
     product_params = {
-        "categories_include": INCLUDED_CATEGORY_IDS,
+        "productType": [0],
         "hasAPlus": True,
+        "hasAPlusFromManufacturer": True,
         "hasMainVideo": True,
-        "videoCount_gte": 1,
-        "videoCount_lte": MAX_TOTAL_VIDEOS,
-        "current_RATING_gte": 40,
-        "monthlySold_gte": 10,
-        "current_BUY_BOX_SHIPPING_gte": min_price_cents,
-        "current_BUY_BOX_SHIPPING_lte": max_price_cents,
-        "sort": [["monthlySold", "desc"]],
+        "sort": [["current_SALES", "asc"], ["monthlySold", "desc"]],
     }
 
     print("Querying Keepa product finder...")

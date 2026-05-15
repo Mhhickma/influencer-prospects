@@ -256,7 +256,7 @@ def main():
         return
 
     print("Querying full Keepa product data...")
-    products = api.query(asins, history=True, videos=True, stats=90, domain=DOMAIN) or []
+    products = api.query(asins, history=True, videos=True, aplus=True, stats=90, domain=DOMAIN) or []
 
     keepa_data = {}
 

@@ -6,7 +6,6 @@ import keepa
 import numpy as np
 
 
-# Test marker: patched 50-token Keepa run.
 def env_int(name, default):
     value = os.getenv(name)
     if value is None or str(value).strip() == "":
@@ -227,6 +226,8 @@ def main():
     print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
     print("A+ Content required: True")
 
+    min_price_cents = int(MIN_PRICE * 100) + 1
+    max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
 
     # Keepa Product Finder mirrors the dashboard search, then the results are checked below.
@@ -235,6 +236,10 @@ def main():
         "hasAPlus": True,
         "hasAPlusFromManufacturer": True,
         "hasMainVideo": True,
+        "videoCount_gte": 1,
+        "videoCount_lte": MAX_TOTAL_VIDEOS,
+        "current_BUY_BOX_SHIPPING_gte": min_price_cents,
+        "current_BUY_BOX_SHIPPING_lte": max_price_cents,
         "sort": [["current_SALES", "asc"], ["monthlySold", "desc"]],
     }
 
@@ -265,10 +270,6 @@ def main():
         asin = product.get("asin", "?")
 
         try:
-            if not product.get("hasAPlus", False):
-                print(f"Skipping {asin} - no A+ content")
-                continue
-
             videos = product.get("videos") or []
             main_count, influencer_count, other_video_count = classify_videos(videos)
             counted_video_total = main_count + influencer_count + other_video_count
@@ -350,8 +351,8 @@ def main():
                 "sales_rank_drops_30": drops_30,
                 "daily_sales": round(drops_90 / 90) if drops_90 else 0,
                 "accelerating": accelerating,
-                "has_aplus": product.get("hasAPlus", False),
-                "has_aplus_from_manufacturer": product.get("hasAPlusFromManufacturer", False),
+                "has_aplus": product.get("hasAPlus", True),
+                "has_aplus_from_manufacturer": product.get("hasAPlusFromManufacturer", True),
                 "listed_since": listed_since_raw,
                 "listed_since_iso": listed_since_iso,
                 "age_days": age_days,

@@ -6,6 +6,7 @@ import keepa
 import numpy as np
 
 
+# Test marker: patched 50-token Keepa run.
 def env_int(name, default):
     value = os.getenv(name)
     if value is None or str(value).strip() == "":

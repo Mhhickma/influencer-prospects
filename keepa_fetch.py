@@ -288,49 +288,78 @@ def is_excluded_brand(product):
     return any(normalize_filter_value(value) in ignored for value in brand_values)
 
 
-def load_creator_connection_matches(target_asins):
-    target_asins = {asin for asin in target_asins if asin}
-    if not target_asins:
-        return {}, 0, 0
+def parse_campaign_date(value):
+    try:
+        return datetime.strptime(str(value or "").strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return None
 
+
+def campaign_from_row(row, now_utc):
+    start_date = parse_campaign_date(row.get("Campaign Start Date", ""))
+    end_date = parse_campaign_date(row.get("Campaign End Date", ""))
+    today = now_utc.date()
+    is_active = (start_date is None or start_date <= today) and (end_date is None or today <= end_date)
+
+    return {
+        "campaign_id": row.get("Campaign Id", ""),
+        "campaign_name": row.get("Campaign Name", ""),
+        "campaign_brand": row.get("Brand Name", ""),
+        "commission_rate": row.get("Commission Rate", ""),
+        "campaign_start_date": row.get("Campaign Start Date", ""),
+        "campaign_end_date": row.get("Campaign End Date", ""),
+        "recommended": str(row.get("Recommended", "")).lower() == "true",
+        "active": is_active,
+    }
+
+
+def select_creator_campaign_asins(max_asins, now_utc):
     folder = Path(CREATOR_CONNECTIONS_DIR)
     if not folder.exists():
         print(f"Creator Connections folder not found: {folder}")
-        return {}, 0, 0
+        return [], {}, 0, 0
 
-    matches = {}
+    selected_asins = []
+    campaign_by_asin = {}
     rows_scanned = 0
     files_scanned = 0
 
-    for csv_file in sorted(folder.glob("*.csv")):
-        files_scanned += 1
-        with csv_file.open("r", encoding="utf-8-sig", newline="") as handle:
-            reader = csv.DictReader(handle)
-            for row in reader:
-                rows_scanned += 1
-                asin_list = row.get("ASIN List", "")
-                row_asins = set(ASIN_RE.findall(asin_list))
-                matched_asins = target_asins.intersection(row_asins)
+    passes = [
+        ("recommended active", lambda campaign: campaign["recommended"] and campaign["active"]),
+        ("active", lambda campaign: campaign["active"]),
+        ("any", lambda campaign: True),
+    ]
 
-                for asin in matched_asins:
-                    current = matches.get(asin)
-                    commission = row.get("Commission Rate", "")
-                    campaign = {
-                        "campaign_id": row.get("Campaign Id", ""),
-                        "campaign_name": row.get("Campaign Name", ""),
-                        "campaign_brand": row.get("Brand Name", ""),
-                        "commission_rate": commission,
-                        "campaign_end_date": row.get("Campaign End Date", ""),
-                        "recommended": str(row.get("Recommended", "")).lower() == "true",
-                    }
-                    if current is None or campaign["recommended"]:
-                        matches[asin] = campaign
+    for pass_label, campaign_filter in passes:
+        for csv_file in sorted(folder.glob("*.csv")):
+            files_scanned += 1
+            with csv_file.open("r", encoding="utf-8-sig", newline="") as handle:
+                reader = csv.DictReader(handle)
+                for row in reader:
+                    rows_scanned += 1
+                    campaign = campaign_from_row(row, now_utc)
+                    if not campaign_filter(campaign):
+                        continue
+
+                    for asin in ASIN_RE.findall(row.get("ASIN List", "")):
+                        if asin in campaign_by_asin:
+                            continue
+
+                        campaign_by_asin[asin] = campaign
+                        selected_asins.append(asin)
+
+                        if len(selected_asins) >= max_asins:
+                            print(
+                                f"Creator Connections: selected {len(selected_asins)} {pass_label} ASINs "
+                                f"after scanning {files_scanned} file passes / {rows_scanned} rows"
+                            )
+                            return selected_asins, campaign_by_asin, files_scanned, rows_scanned
 
     print(
-        f"Creator Connections: scanned {files_scanned} files / "
-        f"{rows_scanned} rows and matched {len(matches)} ASINs"
+        f"Creator Connections: selected {len(selected_asins)} ASINs "
+        f"after scanning {files_scanned} file passes / {rows_scanned} rows"
     )
-    return matches, files_scanned, rows_scanned
+    return selected_asins, campaign_by_asin, files_scanned, rows_scanned
 
 
 def get_creator_connections_last_updated():
@@ -369,29 +398,19 @@ def main():
     max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
 
-    # Keepa Product Finder mirrors the dashboard search, then the results are checked below.
-    product_params = {
-        "productType": [0],
-        "rootCategory": [str(category_id) for category_id in INCLUDED_CATEGORY_IDS],
-        "hasMainVideo": True,
-        "videoCount_gte": 1,
-        "videoCount_lte": MAX_TOTAL_VIDEOS,
-        "current_BUY_BOX_SHIPPING_gte": min_price_cents,
-        "current_BUY_BOX_SHIPPING_lte": max_price_cents,
-        "sort": [["current_SALES", "asc"], ["monthlySold", "desc"]],
-    }
-
-    print("Querying Keepa product finder...")
-    asins = api.product_finder(product_params, n_products=MAX_ASINS, domain=DOMAIN) or []
-    asins = asins[:MAX_ASINS]
-    print(f"Found {len(asins)} ASINs")
+    print("Reading Creator Connections campaign ASINs...")
     creator_connections_last_updated = get_creator_connections_last_updated()
-    creator_connection_matches, cc_files_scanned, cc_rows_scanned = load_creator_connection_matches(asins)
+    asins, creator_connection_matches, cc_files_scanned, cc_rows_scanned = select_creator_campaign_asins(
+        MAX_ASINS,
+        now_utc,
+    )
+    print(f"Selected {len(asins)} Creator Connections ASINs for Keepa")
 
     if not asins:
         output = {
             "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
             "total": 0,
+            "scan_source": "creator_connections",
             "included_category_ids": INCLUDED_CATEGORY_IDS,
             "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
             "excluded_brands": EXCLUDED_BRANDS,
@@ -399,6 +418,7 @@ def main():
             "creator_connections_last_updated": creator_connections_last_updated,
             "creator_connection_files_scanned": cc_files_scanned,
             "creator_connection_rows_scanned": cc_rows_scanned,
+            "creator_connection_matches": 0,
             "prospects": [],
         }
         with open("data.json", "w", encoding="utf-8") as f:
@@ -528,6 +548,7 @@ def main():
     output = {
         "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
+        "scan_source": "creator_connections",
         "included_category_ids": INCLUDED_CATEGORY_IDS,
         "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
         "excluded_brands": EXCLUDED_BRANDS,

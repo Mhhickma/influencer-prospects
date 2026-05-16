@@ -331,6 +331,20 @@ def load_creator_connection_matches(target_asins):
     return matches, files_scanned, rows_scanned
 
 
+def get_creator_connections_last_updated():
+    folder = Path(CREATOR_CONNECTIONS_DIR)
+    if not folder.exists():
+        return ""
+
+    csv_files = list(folder.glob("*.csv"))
+    if not csv_files:
+        return ""
+
+    newest_file = max(csv_files, key=lambda path: path.stat().st_mtime)
+    newest_dt = datetime.fromtimestamp(newest_file.stat().st_mtime, tz=timezone.utc)
+    return newest_dt.strftime("%Y-%m-%d %H:%M UTC")
+
+
 def main():
     api = keepa.Keepa(KEEPA_API_KEY)
 
@@ -369,6 +383,7 @@ def main():
     asins = api.product_finder(product_params, n_products=MAX_ASINS, domain=DOMAIN) or []
     asins = asins[:MAX_ASINS]
     print(f"Found {len(asins)} ASINs")
+    creator_connections_last_updated = get_creator_connections_last_updated()
     creator_connection_matches, cc_files_scanned, cc_rows_scanned = load_creator_connection_matches(asins)
 
     if not asins:
@@ -379,6 +394,7 @@ def main():
             "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
             "excluded_brands": EXCLUDED_BRANDS,
             "brand_video_required": True,
+            "creator_connections_last_updated": creator_connections_last_updated,
             "creator_connection_files_scanned": cc_files_scanned,
             "creator_connection_rows_scanned": cc_rows_scanned,
             "prospects": [],
@@ -514,6 +530,7 @@ def main():
         "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
         "excluded_brands": EXCLUDED_BRANDS,
         "brand_video_required": True,
+        "creator_connections_last_updated": creator_connections_last_updated,
         "creator_connection_files_scanned": cc_files_scanned,
         "creator_connection_rows_scanned": cc_rows_scanned,
         "creator_connection_matches": len(creator_connection_matches),

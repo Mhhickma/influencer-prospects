@@ -43,6 +43,9 @@
   .metric-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
   .metric-value{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text)}
   .metric-value.green{color:var(--green)}.metric-value.red{color:var(--red)}.metric-value.yellow{color:var(--yellow)}
+  .metric-value.trend-up{color:var(--green)}
+  .metric-value.trend-down{color:var(--red)}
+  .metric-value.trend-stable{color:var(--yellow)}
   .trend-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
   .trend-growing{background:rgba(22,163,74,.10);color:var(--green);border:1px solid rgba(22,163,74,.25)}
   .trend-declining{background:rgba(220,38,38,.10);color:var(--red);border:1px solid rgba(220,38,38,.25)}
@@ -131,6 +134,8 @@ function renderCards(data) {
     const trendClass = p.sales_trend==='Growing'?'trend-growing':p.sales_trend==='Declining'?'trend-declining':'trend-stable';
     const trendIcon = p.sales_trend==='Growing'?'up':p.sales_trend==='Declining'?'down':'stable';
     const trendSign = (p.sales_trend_pct||0)>0?'+':'';
+    const trendValueClass = p.sales_trend==='Growing'?'trend-up':p.sales_trend==='Declining'?'trend-down':'trend-stable';
+    const trendLabel = p.sales_trend==='Growing'?'Increasing':p.sales_trend==='Declining'?'Decreasing':'Steady';
     const ratingColor = (p.rating||0)>=4.5?'green':(p.rating||0)>=4.0?'yellow':'red';
     const d90 = p.sales_rank_drops_90||0;
     const d30 = p.sales_rank_drops_30||0;
@@ -174,6 +179,10 @@ function renderCards(data) {
           <div class="metric">
             <div class="metric-label">Influencer Vids</div>
             <div class="metric-value" style="color:${infColor}">${infLabel}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">90d Sales Trend</div>
+            <div class="metric-value ${trendValueClass}">${trendLabel} ${trendSign}${p.sales_trend_pct||0}%</div>
           </div>
           <div class="metric">
             <div class="metric-label">Video Count</div>

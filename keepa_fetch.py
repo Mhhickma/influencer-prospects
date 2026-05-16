@@ -213,6 +213,25 @@ def get_sales_trend(product):
     return trend, trend_pct
 
 
+def get_image_url(product):
+    images = product.get("imagesCSV") or product.get("images") or ""
+
+    if isinstance(images, str):
+        first_image = next((item.strip() for item in images.split(",") if item.strip()), "")
+    elif isinstance(images, list):
+        first_image = next((str(item).strip() for item in images if str(item).strip()), "")
+    else:
+        first_image = ""
+
+    if not first_image:
+        return ""
+
+    if first_image.startswith("http://") or first_image.startswith("https://"):
+        return first_image
+
+    return f"https://m.media-amazon.com/images/I/{first_image}"
+
+
 def main():
     api = keepa.Keepa(KEEPA_API_KEY)
 
@@ -334,7 +353,7 @@ def main():
                 "brand": brand,
                 "brand_store_url": f"https://www.amazon.com/stores/{brand_store_name}" if brand_store_name else "",
                 "amazon_url": f"https://www.amazon.com/dp/{asin}",
-                "image_url": "",
+                "image_url": get_image_url(product),
                 "buybox_price": round(buybox_price, 2),
                 "monthly_units": monthly_units,
                 "monthly_revenue": round(monthly_revenue, 2),
@@ -351,8 +370,8 @@ def main():
                 "sales_rank_drops_30": drops_30,
                 "daily_sales": round(drops_90 / 90) if drops_90 else 0,
                 "accelerating": accelerating,
-                "has_aplus": product.get("hasAPlus", True),
-                "has_aplus_from_manufacturer": product.get("hasAPlusFromManufacturer", True),
+                "has_aplus": product.get("hasAPlus", False),
+                "has_aplus_from_manufacturer": product.get("hasAPlusFromManufacturer", False),
                 "listed_since": listed_since_raw,
                 "listed_since_iso": listed_since_iso,
                 "age_days": age_days,

@@ -16,6 +16,8 @@ on:
         required: false
         default: '39'
 
+# Test trigger marker: creator CSV upload verified.
+
 jobs:
   fetch:
     if: ${{ github.event_name != 'push' || contains(github.event.head_commit.message, '[test-keepa]') }}

@@ -19,6 +19,8 @@
   .logo span{color:var(--accent)}
   .header-stats{display:flex;gap:24px;font-family:var(--mono);font-size:12px;color:var(--muted)}
   .header-stats strong{color:var(--text)}
+  .cc-notice{background:rgba(100,87,232,.08);border-bottom:1px solid rgba(100,87,232,.18);padding:12px 40px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .cc-notice strong{color:var(--accent)}
   .status-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 40px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted)}
   #import-status{color:var(--green)}
   #scan-summary{padding:10px 40px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface)}
@@ -82,6 +84,7 @@
     <span>Avg Revenue: <strong id="stat-avg">$0</strong></span>
     <span>Growing: <strong id="stat-growing">0</strong></span>
   </div></div></header>
+<div class="cc-notice">Creator Connections CSV last updated: <strong id="cc-last-updated">Loading...</strong></div>
 
 <div class="status-bar">
   <span id="import-status">Loading prospects...</span>
@@ -127,6 +130,7 @@ async function loadData() {
     const creatorFileDate = json.creator_connections_last_updated
       ? ` | Creator file updated: ${json.creator_connections_last_updated}`
       : '';
+    document.getElementById('cc-last-updated').textContent = json.creator_connections_last_updated || 'Not available';
     document.getElementById('import-status').textContent = `${prospects.length} prospects loaded (${idealCount} ideal, ${looseCount} loose)`;
     document.getElementById('last-updated').textContent = `Last scan: ${json.last_updated || ''}${creatorFileDate}`;
     renderScanSummary(json);
@@ -134,6 +138,7 @@ async function loadData() {
   } catch(e) {
     document.getElementById('import-status').style.color = 'var(--yellow)';
     document.getElementById('import-status').textContent = 'No data yet - run the GitHub Actions workflow first.';
+    document.getElementById('cc-last-updated').textContent = 'Not available';
   }
 }
 

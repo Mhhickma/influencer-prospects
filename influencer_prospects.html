@@ -128,10 +128,12 @@ function renderScanSummary(json) {
   const summary = document.getElementById('scan-summary');
   const skipCounts = json.skip_counts || {};
   const topReject = Object.entries(skipCounts).sort((a,b) => b[1] - a[1])[0];
-  const scanned = json.creator_connection_matches || 0;
+  const campaignAsins = json.creator_connection_asins_loaded || 0;
+  const finderCandidates = json.product_finder_candidates || 0;
+  const matched = json.creator_connection_matches || 0;
   const returned = json.keepa_products_returned || 0;
   const rejectText = topReject ? ` | top rejection: ${formatRejectReason(topReject[0])} (${topReject[1]})` : '';
-  summary.textContent = `Campaign ASINs checked: ${scanned} | Keepa products returned: ${returned}${rejectText}`;
+  summary.textContent = `Campaign ASINs loaded: ${campaignAsins.toLocaleString()} | Product Finder candidates: ${finderCandidates.toLocaleString()} | Campaign matches checked: ${matched} | Keepa products returned: ${returned}${rejectText}`;
 }
 
 function formatRejectReason(reason) {

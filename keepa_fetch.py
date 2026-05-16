@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import re
+import math
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -65,6 +66,8 @@ LOOSE_MAX_INFLUENCER_VIDEOS = env_int("LOOSE_MAX_INFLUENCER_VIDEOS", 6)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connections")
 CAMPAIGN_ASINS_PER_ROW = env_int("CAMPAIGN_ASINS_PER_ROW", 1)
+PRODUCT_FINDER_PAGE_SIZE = env_int("PRODUCT_FINDER_PAGE_SIZE", 100)
+MAX_PRODUCT_FINDER_PAGES = env_int("MAX_PRODUCT_FINDER_PAGES", 25)
 SCAN_HISTORY_FILE = "scan_history.json"
 MAX_SCAN_HISTORY = env_int("MAX_SCAN_HISTORY", 20)
 ASIN_RE = re.compile(r"\b[A-Z0-9]{10}\b")
@@ -356,8 +359,12 @@ def update_scan_history(output, tokens_used):
         "total": output["total"],
         "total_ideal": output.get("total_ideal", 0),
         "total_loose": output.get("total_loose", 0),
+        "scan_source": output.get("scan_source", ""),
+        "creator_connection_asins_loaded": output.get("creator_connection_asins_loaded", 0),
         "creator_connection_matches": output.get("creator_connection_matches", 0),
         "creator_connection_rows_scanned": output.get("creator_connection_rows_scanned", 0),
+        "product_finder_candidates": output.get("product_finder_candidates", 0),
+        "product_finder_pages_scanned": output.get("product_finder_pages_scanned", 0),
         "skip_counts": output.get("skip_counts", {}),
         "tokens_used": tokens_used,
     }
@@ -454,6 +461,96 @@ def select_creator_campaign_asins(max_asins, now_utc):
     return selected_asins, campaign_by_asin, files_scanned, rows_scanned
 
 
+def load_active_creator_campaign_asins(now_utc):
+    folder = Path(CREATOR_CONNECTIONS_DIR)
+    if not folder.exists():
+        print(f"Creator Connections folder not found: {folder}")
+        return {}, 0, 0
+
+    campaign_by_asin = {}
+    rows_scanned = 0
+    files_scanned = 0
+
+    for csv_file in sorted(folder.glob("*.csv")):
+        files_scanned += 1
+        with csv_file.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                rows_scanned += 1
+                campaign = campaign_from_row(row, now_utc)
+                if not campaign["active"]:
+                    continue
+
+                for asin in ASIN_RE.findall(row.get("ASIN List", "")):
+                    existing = campaign_by_asin.get(asin)
+                    if existing and existing.get("recommended"):
+                        continue
+                    campaign_by_asin[asin] = campaign
+
+    print(
+        f"Creator Connections: loaded {len(campaign_by_asin)} active campaign ASINs "
+        f"after scanning {files_scanned} files / {rows_scanned} rows"
+    )
+    return campaign_by_asin, files_scanned, rows_scanned
+
+
+def product_finder_params(page):
+    min_price_cents = int(LOOSE_MIN_PRICE * 100) + 1
+    max_price_cents = int(LOOSE_MAX_PRICE * 100)
+    min_monthly_units = max(1, math.ceil(LOOSE_MIN_MONTHLY_REVENUE / max(LOOSE_MAX_PRICE, 1)))
+
+    return {
+        "productType": [0],
+        "rootCategory": [str(category_id) for category_id in INCLUDED_CATEGORY_IDS],
+        "categories_exclude": EXCLUDED_CATEGORY_IDS,
+        "hasMainVideo": True,
+        "videoCount_gte": 1,
+        "videoCount_lte": LOOSE_MAX_TOTAL_VIDEOS,
+        "current_BUY_BOX_SHIPPING_gte": min_price_cents,
+        "current_BUY_BOX_SHIPPING_lte": max_price_cents,
+        "monthlySold_gte": min_monthly_units,
+        "sort": [
+            ["current_SALES", "asc"],
+            ["monthlySold", "desc"],
+        ],
+        "perPage": PRODUCT_FINDER_PAGE_SIZE,
+        "page": page,
+    }
+
+
+def find_creator_campaign_product_finder_asins(api, max_asins, creator_connection_matches):
+    selected_asins = []
+    selected = set()
+    product_finder_candidates = 0
+    product_finder_pages_scanned = 0
+
+    for page in range(MAX_PRODUCT_FINDER_PAGES):
+        params = product_finder_params(page)
+        asins = api.product_finder(params, domain=DOMAIN, n_products=PRODUCT_FINDER_PAGE_SIZE) or []
+        product_finder_pages_scanned += 1
+        product_finder_candidates += len(asins)
+        print(
+            f"Product Finder page {page}: {len(asins)} candidates, "
+            f"{len(selected_asins)} Creator Campaign matches so far"
+        )
+
+        for asin in asins:
+            if asin in selected:
+                continue
+            if asin not in creator_connection_matches:
+                continue
+
+            selected.add(asin)
+            selected_asins.append(asin)
+            if len(selected_asins) >= max_asins:
+                return selected_asins, product_finder_candidates, product_finder_pages_scanned
+
+        if len(asins) < PRODUCT_FINDER_PAGE_SIZE:
+            break
+
+    return selected_asins, product_finder_candidates, product_finder_pages_scanned
+
+
 def get_creator_connections_last_updated():
     folder = Path(CREATOR_CONNECTIONS_DIR)
     if not folder.exists():
@@ -491,20 +588,23 @@ def main():
     print(f"Excluded category IDs: {EXCLUDED_CATEGORY_IDS}")
     print(f"Excluded brands: {EXCLUDED_BRANDS}")
     print(f"Creator Connections folder: {CREATOR_CONNECTIONS_DIR}")
+    print(f"Product Finder page size: {PRODUCT_FINDER_PAGE_SIZE}")
+    print(f"Max Product Finder pages: {MAX_PRODUCT_FINDER_PAGES}")
     print("Brand video required: True")
 
-    min_price_cents = int(MIN_PRICE * 100) + 1
-    max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
     skip_counts = Counter()
 
-    print("Reading Creator Connections campaign ASINs...")
+    print("Loading full Creator Connections campaign ASIN list...")
     creator_connections_last_updated = get_creator_connections_last_updated()
-    asins, creator_connection_matches, cc_files_scanned, cc_rows_scanned = select_creator_campaign_asins(
+    creator_connection_matches, cc_files_scanned, cc_rows_scanned = load_active_creator_campaign_asins(now_utc)
+    print("Running Keepa Product Finder, then matching candidates to Creator Connections...")
+    asins, product_finder_candidates, product_finder_pages_scanned = find_creator_campaign_product_finder_asins(
+        api,
         MAX_ASINS,
-        now_utc,
+        creator_connection_matches,
     )
-    print(f"Selected {len(asins)} Creator Connections ASINs for Keepa")
+    print(f"Selected {len(asins)} Product Finder + Creator Connections ASINs for full Keepa detail")
 
     if not asins:
         output = {
@@ -512,7 +612,7 @@ def main():
             "total": 0,
             "total_ideal": 0,
             "total_loose": 0,
-            "scan_source": "creator_connections",
+            "scan_source": "product_finder_creator_connections",
             "included_category_ids": INCLUDED_CATEGORY_IDS,
             "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
             "excluded_brands": EXCLUDED_BRANDS,
@@ -520,7 +620,10 @@ def main():
             "creator_connections_last_updated": creator_connections_last_updated,
             "creator_connection_files_scanned": cc_files_scanned,
             "creator_connection_rows_scanned": cc_rows_scanned,
+            "creator_connection_asins_loaded": len(creator_connection_matches),
             "creator_connection_matches": 0,
+            "product_finder_candidates": product_finder_candidates,
+            "product_finder_pages_scanned": product_finder_pages_scanned,
             "skip_counts": {},
             "loose_criteria": {
                 "min_price": LOOSE_MIN_PRICE,
@@ -697,7 +800,7 @@ def main():
         "total": len(results),
         "total_ideal": sum(1 for item in results if item.get("is_ideal")),
         "total_loose": sum(1 for item in results if not item.get("is_ideal")),
-        "scan_source": "creator_connections",
+        "scan_source": "product_finder_creator_connections",
         "included_category_ids": INCLUDED_CATEGORY_IDS,
         "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
         "excluded_brands": EXCLUDED_BRANDS,
@@ -705,7 +808,10 @@ def main():
         "creator_connections_last_updated": creator_connections_last_updated,
         "creator_connection_files_scanned": cc_files_scanned,
         "creator_connection_rows_scanned": cc_rows_scanned,
-        "creator_connection_matches": len(creator_connection_matches),
+        "creator_connection_asins_loaded": len(creator_connection_matches),
+        "creator_connection_matches": len(asins),
+        "product_finder_candidates": product_finder_candidates,
+        "product_finder_pages_scanned": product_finder_pages_scanned,
         "keepa_products_returned": len(products),
         "skip_counts": dict(skip_counts),
         "loose_criteria": {

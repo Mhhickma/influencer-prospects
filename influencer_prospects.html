@@ -101,8 +101,11 @@ async function loadData() {
     if (!res.ok) throw new Error('No data');
     const json = await res.json();
     prospects = json.prospects || [];
+    const creatorFileDate = json.creator_connections_last_updated
+      ? ` | Creator file updated: ${json.creator_connections_last_updated}`
+      : '';
     document.getElementById('import-status').textContent = `${prospects.length} prospects loaded`;
-    document.getElementById('last-updated').textContent = `Last updated: ${json.last_updated || ''}`;
+    document.getElementById('last-updated').textContent = `Last scan: ${json.last_updated || ''}${creatorFileDate}`;
     renderCards(prospects);
   } catch(e) {
     document.getElementById('import-status').style.color = 'var(--yellow)';

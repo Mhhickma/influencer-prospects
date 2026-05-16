@@ -127,12 +127,13 @@ async function loadData() {
     prospects = json.prospects || [];
     const idealCount = json.total_ideal ?? prospects.filter(p => p.is_ideal).length;
     const looseCount = json.total_loose ?? prospects.filter(p => !p.is_ideal).length;
+    const lastScanDate = formatEasternTime(json.last_updated);
     const creatorFileDate = json.creator_connections_last_updated
-      ? ` | Creator file updated: ${json.creator_connections_last_updated}`
+      ? ` | Creator file updated: ${formatEasternTime(json.creator_connections_last_updated)}`
       : '';
-    document.getElementById('cc-last-updated').textContent = json.creator_connections_last_updated || 'Not available';
+    document.getElementById('cc-last-updated').textContent = formatEasternTime(json.creator_connections_last_updated) || 'Not available';
     document.getElementById('import-status').textContent = `${prospects.length} prospects loaded (${idealCount} ideal, ${looseCount} loose)`;
-    document.getElementById('last-updated').textContent = `Last scan: ${json.last_updated || ''}${creatorFileDate}`;
+    document.getElementById('last-updated').textContent = `Last scan: ${lastScanDate || ''}${creatorFileDate}`;
     renderScanSummary(json);
     renderCards(prospects);
   } catch(e) {
@@ -156,6 +157,23 @@ function renderScanSummary(json) {
 
 function formatRejectReason(reason) {
   return String(reason || '').replaceAll('_', ' ');
+}
+
+function formatEasternTime(value) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  const iso = raw.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(raw) ? raw : raw.replace(' UTC', '') + 'Z';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return raw.replace(' UTC', ' ET');
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  }).format(date);
 }
 
 function openScanWorkflow() {

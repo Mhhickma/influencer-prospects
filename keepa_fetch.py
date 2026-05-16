@@ -1,6 +1,9 @@
+import csv
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import keepa
 import numpy as np
@@ -33,14 +36,29 @@ def env_int_list(name, default=None):
     return cleaned
 
 
+def env_str_list(name, default=None):
+    value = os.getenv(name)
+    if value is None or str(value).strip() == "":
+        return default or []
+
+    cleaned = []
+    for item in str(value).replace(";", ",").split(","):
+        item = item.strip()
+        if item:
+            cleaned.append(item)
+    return cleaned
+
+
 DOMAIN = "US"
 MAX_ASINS = env_int("MAX_ASINS", 100)
 MIN_PRICE = env_float("MIN_PRICE", 50)
 MAX_PRICE = env_float("MAX_PRICE", 100)
-MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 5000)
+MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 10000)
 MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 5)
-MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 5)
+MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 0)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
+CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connections")
+ASIN_RE = re.compile(r"\b[A-Z0-9]{10}\b")
 
 # Amazon US root category IDs used by Keepa Product Finder.
 DEFAULT_INCLUDED_CATEGORY_IDS = [
@@ -57,7 +75,22 @@ DEFAULT_INCLUDED_CATEGORY_IDS = [
     2102313011,  # Amazon Devices & Accessories
 ]
 
+DEFAULT_EXCLUDED_CATEGORY_IDS = [
+    283155,      # Books
+    599858,      # Magazine Subscriptions
+    7141123011,  # Clothing, Shoes & Jewelry
+    16310101,    # Grocery & Gourmet Food
+]
+
+DEFAULT_EXCLUDED_BRANDS = [
+    "Beats",
+    "Apple",
+    "Apple Store",
+]
+
 INCLUDED_CATEGORY_IDS = env_int_list("INCLUDED_CATEGORY_IDS", DEFAULT_INCLUDED_CATEGORY_IDS)
+EXCLUDED_CATEGORY_IDS = env_int_list("EXCLUDED_CATEGORY_IDS", DEFAULT_EXCLUDED_CATEGORY_IDS)
+EXCLUDED_BRANDS = env_str_list("EXCLUDED_BRANDS", DEFAULT_EXCLUDED_BRANDS)
 
 KEEPA_API_KEY = os.environ["KEEPA_API_KEY"]
 
@@ -232,6 +265,72 @@ def get_image_url(product):
     return f"https://m.media-amazon.com/images/I/{first_image}"
 
 
+def normalize_filter_value(value):
+    return str(value or "").strip().lower()
+
+
+def is_excluded_category(product):
+    root_category = product.get("rootCategory")
+    categories = product.get("categories") or []
+    category_ids = {root_category, *categories}
+    return any(category_id in EXCLUDED_CATEGORY_IDS for category_id in category_ids)
+
+
+def is_excluded_brand(product):
+    ignored = {normalize_filter_value(brand) for brand in EXCLUDED_BRANDS}
+    brand_values = [
+        product.get("brand", ""),
+        product.get("brandStoreUrlName", ""),
+        product.get("manufacturer", ""),
+    ]
+    return any(normalize_filter_value(value) in ignored for value in brand_values)
+
+
+def load_creator_connection_matches(target_asins):
+    target_asins = {asin for asin in target_asins if asin}
+    if not target_asins:
+        return {}, 0, 0
+
+    folder = Path(CREATOR_CONNECTIONS_DIR)
+    if not folder.exists():
+        print(f"Creator Connections folder not found: {folder}")
+        return {}, 0, 0
+
+    matches = {}
+    rows_scanned = 0
+    files_scanned = 0
+
+    for csv_file in sorted(folder.glob("*.csv")):
+        files_scanned += 1
+        with csv_file.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                rows_scanned += 1
+                asin_list = row.get("ASIN List", "")
+                row_asins = set(ASIN_RE.findall(asin_list))
+                matched_asins = target_asins.intersection(row_asins)
+
+                for asin in matched_asins:
+                    current = matches.get(asin)
+                    commission = row.get("Commission Rate", "")
+                    campaign = {
+                        "campaign_id": row.get("Campaign Id", ""),
+                        "campaign_name": row.get("Campaign Name", ""),
+                        "campaign_brand": row.get("Brand Name", ""),
+                        "commission_rate": commission,
+                        "campaign_end_date": row.get("Campaign End Date", ""),
+                        "recommended": str(row.get("Recommended", "")).lower() == "true",
+                    }
+                    if current is None or campaign["recommended"]:
+                        matches[asin] = campaign
+
+    print(
+        f"Creator Connections: scanned {files_scanned} files / "
+        f"{rows_scanned} rows and matched {len(matches)} ASINs"
+    )
+    return matches, files_scanned, rows_scanned
+
+
 def main():
     api = keepa.Keepa(KEEPA_API_KEY)
 
@@ -241,9 +340,14 @@ def main():
     print(f"MAX_ASINS: {MAX_ASINS}")
     print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
     print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
+    print(f"Max influencer videos: {MAX_INFLUENCER_VIDEOS}")
+    print(f"Minimum monthly revenue: ${MIN_MONTHLY_REVENUE:,.2f}")
     print(f"New product window: {NEW_PRODUCT_DAYS} days")
     print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
-    print("A+ Content required: True")
+    print(f"Excluded category IDs: {EXCLUDED_CATEGORY_IDS}")
+    print(f"Excluded brands: {EXCLUDED_BRANDS}")
+    print(f"Creator Connections folder: {CREATOR_CONNECTIONS_DIR}")
+    print("Brand video required: True")
 
     min_price_cents = int(MIN_PRICE * 100) + 1
     max_price_cents = int(MAX_PRICE * 100)
@@ -252,8 +356,7 @@ def main():
     # Keepa Product Finder mirrors the dashboard search, then the results are checked below.
     product_params = {
         "productType": [0],
-        "hasAPlus": True,
-        "hasAPlusFromManufacturer": True,
+        "rootCategory": INCLUDED_CATEGORY_IDS,
         "hasMainVideo": True,
         "videoCount_gte": 1,
         "videoCount_lte": MAX_TOTAL_VIDEOS,
@@ -266,13 +369,18 @@ def main():
     asins = api.product_finder(product_params, n_products=MAX_ASINS, domain=DOMAIN) or []
     asins = asins[:MAX_ASINS]
     print(f"Found {len(asins)} ASINs")
+    creator_connection_matches, cc_files_scanned, cc_rows_scanned = load_creator_connection_matches(asins)
 
     if not asins:
         output = {
             "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
             "total": 0,
             "included_category_ids": INCLUDED_CATEGORY_IDS,
-            "aplus_required": True,
+            "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
+            "excluded_brands": EXCLUDED_BRANDS,
+            "brand_video_required": True,
+            "creator_connection_files_scanned": cc_files_scanned,
+            "creator_connection_rows_scanned": cc_rows_scanned,
             "prospects": [],
         }
         with open("data.json", "w", encoding="utf-8") as f:
@@ -347,6 +455,16 @@ def main():
             root_category = product.get("rootCategory")
             categories = product.get("categories") or []
 
+            if is_excluded_category(product):
+                print(f"Skipping {asin} - excluded category {root_category}")
+                continue
+
+            if is_excluded_brand(product):
+                print(f"Skipping {asin} - excluded brand {brand or brand_store_name}")
+                continue
+
+            creator_campaign = creator_connection_matches.get(asin)
+
             keepa_data[asin] = {
                 "asin": asin,
                 "title": product.get("title", "") or "",
@@ -378,6 +496,8 @@ def main():
                 "is_new_90": is_new_90,
                 "root_category": root_category,
                 "categories": categories,
+                "creator_connection": creator_campaign is not None,
+                "creator_connection_campaign": creator_campaign,
             }
 
         except Exception as exc:
@@ -391,10 +511,16 @@ def main():
         "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
         "included_category_ids": INCLUDED_CATEGORY_IDS,
-        "aplus_required": True,
+        "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
+        "excluded_brands": EXCLUDED_BRANDS,
+        "brand_video_required": True,
+        "creator_connection_files_scanned": cc_files_scanned,
+        "creator_connection_rows_scanned": cc_rows_scanned,
+        "creator_connection_matches": len(creator_connection_matches),
         "prospects": sorted(
             results,
             key=lambda x: (
+                0 if x.get("creator_connection") else 1,
                 0 if x.get("is_new_90") else 1,
                 x.get("age_days") if x.get("age_days") is not None else 999999,
                 -x.get("monthly_revenue", 0),

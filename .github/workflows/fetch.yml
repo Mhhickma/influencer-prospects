@@ -10,7 +10,7 @@ on:
         required: false
         default: '39'
 
-# Test trigger marker: creator CSV upload verified.
+# Test trigger marker: 100 ASIN campaign-first scan.
 
 jobs:
   fetch:

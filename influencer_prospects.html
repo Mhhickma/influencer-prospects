@@ -25,15 +25,15 @@
   .filter-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 16px;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s}
   .filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(100,87,232,.08)}
   .search-wrap{margin-left:auto;position:relative}
-  .search-wrap input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px 7px 32px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:200px;transition:border-color .2s}
+  .search-wrap input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px 7px 54px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:200px;transition:border-color .2s}
   .search-wrap input:focus{border-color:var(--accent)}
-  .search-wrap::before{content:'⌕';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+  .search-wrap::before{content:'search';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-family:var(--mono);font-size:9px;pointer-events:none}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:32px 40px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s;animation:fadeUp .4s ease both}
   .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(100,87,232,.12)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .card-img{width:100%;height:180px;object-fit:contain;background:var(--surface2);padding:16px;border-bottom:1px solid var(--border)}
-  .card-img-placeholder{width:100%;height:180px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:32px}
+  .card-img-placeholder{width:100%;height:180px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;font-family:var(--mono)}
   .card-body{padding:18px}
   .card-brand{font-size:11px;font-family:var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .card-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -61,25 +61,24 @@
 
 <header>
   <div class="logo">Prospect<span>Dash</span></div>
-  <div class="header-stats">
+  <div class="header-right"><nav class="dashboard-nav" aria-label="Dashboard pages"><a class="active" href="influencer_prospects.html">Prospects</a><a href="influencer_video_opportunities.html">Video Opportunities</a></nav><div class="header-stats">
     <span>Total: <strong id="stat-total">0</strong></span>
     <span>Avg Revenue: <strong id="stat-avg">$0</strong></span>
     <span>Growing: <strong id="stat-growing">0</strong></span>
-  </div>
-</header>
+  </div></div></header>
 
 <div class="status-bar">
-  <span id="import-status">⏳ Loading prospects...</span>
+  <span id="import-status">Loading prospects...</span>
   <span id="last-updated"></span>
 </div>
 
 <div class="controls">
   <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-  <button class="filter-btn" onclick="setFilter('new90',this)">🆕 New 90 Days</button>
-  <button class="filter-btn" onclick="setFilter('Growing',this)">📈 Growing</button>
-  <button class="filter-btn" onclick="setFilter('Stable',this)">➡️ Stable</button>
-  <button class="filter-btn" onclick="setFilter('Declining',this)">📉 Declining</button>
-  <button class="filter-btn" onclick="setFilter('accelerating',this)">⚡ Accelerating</button>
+  <button class="filter-btn" onclick="setFilter('new90',this)">New 90 Days</button>
+  <button class="filter-btn" onclick="setFilter('Growing',this)">Growing</button>
+  <button class="filter-btn" onclick="setFilter('Stable',this)">Stable</button>
+  <button class="filter-btn" onclick="setFilter('Declining',this)">Declining</button>
+  <button class="filter-btn" onclick="setFilter('accelerating',this)">Accelerating</button>
   <div class="search-wrap">
     <input type="text" placeholder="search brand or title..." oninput="searchCards(this.value)">
   </div>
@@ -98,12 +97,12 @@ async function loadData() {
     if (!res.ok) throw new Error('No data');
     const json = await res.json();
     prospects = json.prospects || [];
-    document.getElementById('import-status').textContent = `✓ ${prospects.length} prospects loaded`;
+    document.getElementById('import-status').textContent = `${prospects.length} prospects loaded`;
     document.getElementById('last-updated').textContent = `Last updated: ${json.last_updated || ''}`;
     renderCards(prospects);
   } catch(e) {
     document.getElementById('import-status').style.color = 'var(--yellow)';
-    document.getElementById('import-status').textContent = '⚠️ No data yet — run the GitHub Actions workflow first.';
+    document.getElementById('import-status').textContent = 'No data yet - run the GitHub Actions workflow first.';
   }
 }
 
@@ -129,27 +128,24 @@ function renderCards(data) {
 
   filtered.forEach((p,i) => {
     const trendClass = p.sales_trend==='Growing'?'trend-growing':p.sales_trend==='Declining'?'trend-declining':'trend-stable';
-    const trendIcon = p.sales_trend==='Growing'?'↑':p.sales_trend==='Declining'?'↓':'→';
+    const trendIcon = p.sales_trend==='Growing'?'up':p.sales_trend==='Declining'?'down':'stable';
     const trendSign = (p.sales_trend_pct||0)>0?'+':'';
     const ratingColor = (p.rating||0)>=4.5?'green':(p.rating||0)>=4.0?'yellow':'red';
-    const d90 = p.sales_rank_drops_90||0;
-    const d30 = p.sales_rank_drops_30||0;
     const inf = p.influencer_count||0;
     const mainVideos = p.main_video_count||0;
     const otherVideos = p.other_video_count||0;
     const totalVideos = p.video_count ?? (mainVideos + inf + otherVideos);
-    const ageLabel = p.age_days === null || p.age_days === undefined ? '—' : `${p.age_days}d`;
+    const ageLabel = p.age_days === null || p.age_days === undefined ? '-' : `${p.age_days}d`;
     const infColor = inf===0?'var(--green)':inf<=2?'var(--yellow)':'var(--red)';
     const infLabel = inf===0?'none yet':inf===1?'1 so far':inf+' so far';
 
-    // Image proxy to bypass CORS
     const proxyUrl = p.image_url
       ? `https://images.weserv.nl/?url=${encodeURIComponent(p.image_url)}&w=400&output=webp`
       : '';
     const imgHtml = proxyUrl
       ? `<img class="card-img" src="${proxyUrl}" alt="${p.brand||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
       : '';
-    const ph = `<div class="card-img-placeholder" ${proxyUrl?'style="display:none"':''}>📦</div>`;
+    const ph = `<div class="card-img-placeholder" ${proxyUrl?'style="display:none"':''}>No image</div>`;
 
     const card = document.createElement('div');
     card.className = 'card';
@@ -161,7 +157,11 @@ function renderCards(data) {
         <div class="card-title">${p.title||''}</div>
         <div class="card-metrics">
           <div class="metric">
-            <div class="metric-label">Monthly Rev</div>
+            <div class="metric-label">Units/mo</div>
+            <div class="metric-value">${(p.monthly_units||0).toLocaleString()}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Revenue/mo</div>
             <div class="metric-value green">$${(p.monthly_revenue||0).toLocaleString()}</div>
           </div>
           <div class="metric">
@@ -169,29 +169,12 @@ function renderCards(data) {
             <div class="metric-value">$${p.buybox_price||0}</div>
           </div>
           <div class="metric">
-            <div class="metric-label">Units/mo</div>
-            <div class="metric-value">${(p.monthly_units||0).toLocaleString()}</div>
-          </div>
-          <div class="metric">
             <div class="metric-label">Age</div>
             <div class="metric-value ${p.is_new_90?'green':''}">${ageLabel}</div>
           </div>
           <div class="metric">
-            <div class="metric-label">Listed</div>
-            <div class="metric-value">${p.listed_since_iso||'—'}</div>
-          </div>
-          <div class="metric">
             <div class="metric-label">Rating</div>
-            <div class="metric-value ${ratingColor}">★ ${p.rating||'—'} <span style="color:var(--muted);font-size:10px">(${(p.review_count||0).toLocaleString()})</span></div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">Daily Sales</div>
-            <div class="metric-value" style="display:flex;align-items:baseline;gap:4px">
-              ~${Math.round(d90/90)}<span style="font-size:10px;color:var(--muted)">/day</span>
-              <span style="font-size:10px;font-weight:600;color:${d30>(d90/3)?'var(--green)':'var(--red)'}">
-                ${d30>(d90/3)?'▲':'▼'}
-              </span>
-            </div>
+            <div class="metric-value ${ratingColor}">${p.rating||'-'} <span style="color:var(--muted);font-size:10px">(${(p.review_count||0).toLocaleString()})</span></div>
           </div>
           <div class="metric">
             <div class="metric-label">Influencer Vids</div>
@@ -212,8 +195,8 @@ function renderCards(data) {
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span class="trend-badge ${trendClass}">${trendIcon} ${p.sales_trend} ${trendSign}${p.sales_trend_pct||0}%</span>
-          ${p.is_new_90?'<span class="new-tag">🆕 new 90d</span>':''}
-          ${p.accelerating?'<span class="accel-tag">⚡ accel</span>':''}
+          ${p.is_new_90?'<span class="new-tag">new 90d</span>':''}
+          ${p.accelerating?'<span class="accel-tag">accelerating</span>':''}
         </div>
         <div class="card-footer">
           <a class="btn btn-primary" href="${p.amazon_url||'#'}" target="_blank">View Listing</a>

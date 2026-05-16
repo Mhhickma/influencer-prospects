@@ -1,6 +1,12 @@
 name: Fetch Keepa Data
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - keepa_fetch.py
+      - .github/workflows/fetch.yml
   schedule:
     - cron: '0 8 * * *'
   workflow_dispatch:
@@ -10,10 +16,11 @@ on:
         required: false
         default: '200'
 
-# Test trigger marker: 100 ASIN campaign-first scan.
+# Test trigger marker: Product Finder first, Creator Campaign second.
 
 jobs:
   fetch:
+    if: ${{ github.event_name != 'push' || contains(github.event.head_commit.message, '[test-keepa]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

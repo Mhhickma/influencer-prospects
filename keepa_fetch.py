@@ -67,7 +67,7 @@ NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connections")
 CAMPAIGN_ASINS_PER_ROW = env_int("CAMPAIGN_ASINS_PER_ROW", 1)
 PRODUCT_FINDER_PAGE_SIZE = env_int("PRODUCT_FINDER_PAGE_SIZE", 100)
-MAX_PRODUCT_FINDER_PAGES = env_int("MAX_PRODUCT_FINDER_PAGES", 25)
+MAX_PRODUCT_FINDER_PAGES = env_int("MAX_PRODUCT_FINDER_PAGES", 10)
 SCAN_HISTORY_FILE = "scan_history.json"
 MAX_SCAN_HISTORY = env_int("MAX_SCAN_HISTORY", 20)
 ASIN_RE = re.compile(r"\b[A-Z0-9]{10}\b")
@@ -264,7 +264,16 @@ def get_image_url(product):
     if isinstance(images, str):
         first_image = next((item.strip() for item in images.split(",") if item.strip()), "")
     elif isinstance(images, list):
-        first_image = next((str(item).strip() for item in images if str(item).strip()), "")
+        first_image = ""
+        for item in images:
+            if isinstance(item, dict):
+                first_image = item.get("l") or item.get("m") or item.get("s") or ""
+            else:
+                first_image = str(item).strip()
+            if first_image:
+                break
+    elif isinstance(images, dict):
+        first_image = images.get("l") or images.get("m") or images.get("s") or ""
     else:
         first_image = ""
 

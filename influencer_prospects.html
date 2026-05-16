@@ -257,6 +257,15 @@ function renderCards(data) {
     const creatorCampaignLabel = p.creator_connection
       ? (creatorCampaign.commission_rate ? creatorCampaign.commission_rate : 'matched')
       : 'No';
+    const campaignDaysLeft = getCampaignDaysLeft(creatorCampaign.campaign_end_date);
+    const campaignDaysLabel = formatCampaignDaysLeft(campaignDaysLeft);
+    const campaignDaysColor = campaignDaysLeft === null
+      ? ''
+      : campaignDaysLeft < 0
+        ? 'red'
+        : campaignDaysLeft <= 7
+          ? 'yellow'
+          : 'green';
     const missedReasons = (p.missed_ideal_reasons || []).join(', ');
 
     const card = document.createElement('div');
@@ -304,6 +313,10 @@ function renderCards(data) {
           <div class="metric">
             <div class="metric-label">Creator Campaign</div>
             <div class="metric-value ${p.creator_connection?'green':'red'}">${creatorCampaignLabel}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">CC Days Left</div>
+            <div class="metric-value ${campaignDaysColor}">${campaignDaysLabel}</div>
           </div>
           <div class="metric">
             <div class="metric-label">Video Count</div>
@@ -383,6 +396,34 @@ function setFilter(f,btn) {
   renderCards(prospects);
 }
 function searchCards(val) { searchTerm=val.toLowerCase(); renderCards(prospects); }
+
+function getCampaignDaysLeft(endDateValue) {
+  if (!endDateValue) return null;
+  const match = String(endDateValue).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const endUtc = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const today = getEasternTodayUtc();
+  return Math.ceil((endUtc - today) / 86400000);
+}
+
+function getEasternTodayUtc() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return Date.UTC(Number(byType.year), Number(byType.month) - 1, Number(byType.day));
+}
+
+function formatCampaignDaysLeft(days) {
+  if (days === null || days === undefined) return '-';
+  if (days < 0) return 'ended';
+  if (days === 0) return 'ends today';
+  if (days === 1) return '1 day';
+  return `${days} days`;
+}
 
 document.addEventListener('DOMContentLoaded', loadData);
 </script>

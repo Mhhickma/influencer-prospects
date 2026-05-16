@@ -16,7 +16,7 @@ on:
         required: false
         default: '39'
 
-# Test trigger marker: creator CSV upload verified.
+# Test trigger marker: 100 ASIN campaign-first scan.
 
 jobs:
   fetch:
@@ -43,7 +43,7 @@ jobs:
           CREATORS_CREDENTIAL_ID: ${{ secrets.CREATORS_CREDENTIAL_ID }}
           CREATORS_CREDENTIAL_SECRET: ${{ secrets.CREATORS_CREDENTIAL_SECRET }}
           AFFILIATE_TAG: ${{ vars.AFFILIATE_TAG }}
-          MAX_ASINS: ${{ github.event_name == 'push' && '39' || github.event_name == 'workflow_dispatch' && inputs.max_asins || vars.MAX_ASINS }}
+          MAX_ASINS: ${{ github.event_name == 'push' && '100' || github.event_name == 'workflow_dispatch' && inputs.max_asins || vars.MAX_ASINS }}
         run: python keepa_fetch.py
 
       - name: Commit data

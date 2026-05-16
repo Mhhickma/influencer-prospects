@@ -3,6 +3,7 @@ import json
 import os
 import re
 import math
+import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -69,6 +70,8 @@ CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connecti
 CAMPAIGN_ASINS_PER_ROW = env_int("CAMPAIGN_ASINS_PER_ROW", 1)
 PRODUCT_FINDER_PAGE_SIZE = env_int("PRODUCT_FINDER_PAGE_SIZE", 100)
 MAX_PRODUCT_FINDER_PAGES = env_int("MAX_PRODUCT_FINDER_PAGES", 10)
+KEEPA_QUERY_BATCH_SIZE = env_int("KEEPA_QUERY_BATCH_SIZE", 20)
+KEEPA_QUERY_RETRIES = env_int("KEEPA_QUERY_RETRIES", 3)
 SCAN_HISTORY_FILE = "scan_history.json"
 MAX_SCAN_HISTORY = env_int("MAX_SCAN_HISTORY", 20)
 ASIN_RE = re.compile(r"\b[A-Z0-9]{10}\b")
@@ -566,6 +569,31 @@ def find_creator_campaign_product_finder_asins(api, max_asins, token_budget, cre
     return selected_asins, product_finder_candidates, product_finder_pages_scanned
 
 
+def query_keepa_products(api, asins):
+    products = []
+
+    for start in range(0, len(asins), KEEPA_QUERY_BATCH_SIZE):
+        batch = asins[start:start + KEEPA_QUERY_BATCH_SIZE]
+        batch_label = f"{start + 1}-{start + len(batch)}"
+
+        for attempt in range(1, KEEPA_QUERY_RETRIES + 1):
+            try:
+                print(f"Querying Keepa products {batch_label} (attempt {attempt})...")
+                products.extend(
+                    api.query(batch, history=True, videos=True, aplus=True, stats=90, domain=DOMAIN) or []
+                )
+                break
+            except Exception as exc:
+                if attempt >= KEEPA_QUERY_RETRIES:
+                    print(f"Skipping Keepa batch {batch_label} after {attempt} attempts: {exc}")
+                    break
+                wait_seconds = attempt * 5
+                print(f"Keepa batch {batch_label} timed out/failed: {exc}. Retrying in {wait_seconds}s...")
+                time.sleep(wait_seconds)
+
+    return products
+
+
 def get_creator_connections_last_updated():
     folder = Path(CREATOR_CONNECTIONS_DIR)
     if not folder.exists():
@@ -606,6 +634,8 @@ def main():
     print(f"Creator Connections folder: {CREATOR_CONNECTIONS_DIR}")
     print(f"Product Finder page size: {PRODUCT_FINDER_PAGE_SIZE}")
     print(f"Max Product Finder pages: {MAX_PRODUCT_FINDER_PAGES}")
+    print(f"Keepa query batch size: {KEEPA_QUERY_BATCH_SIZE}")
+    print(f"Keepa query retries: {KEEPA_QUERY_RETRIES}")
     print("Brand video required: True")
 
     now_utc = datetime.now(timezone.utc)
@@ -662,7 +692,7 @@ def main():
         return
 
     print("Querying full Keepa product data...")
-    products = api.query(asins, history=True, videos=True, aplus=True, stats=90, domain=DOMAIN) or []
+    products = query_keepa_products(api, asins)
 
     keepa_data = {}
 

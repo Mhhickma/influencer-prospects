@@ -188,7 +188,7 @@ function renderCards(data) {
     const otherVideos = p.other_video_count||0;
     const totalVideos = p.video_count ?? (mainVideos + inf + otherVideos);
     const ageLabel = p.age_days === null || p.age_days === undefined ? '-' : `${p.age_days}d`;
-    const infColor = inf===0?'var(--green)':inf<=2?'var(--yellow)':'var(--red)';
+    const infColor = inf===0?'var(--green)':inf<=6?'var(--yellow)':'var(--red)';
     const infLabel = inf===0?'none yet':inf===1?'1 so far':inf+' so far';
     const creatorCampaign = p.creator_connection_campaign || {};
     const creatorCampaignLabel = p.creator_connection

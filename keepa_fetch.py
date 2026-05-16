@@ -372,7 +372,7 @@ def main():
     # Keepa Product Finder mirrors the dashboard search, then the results are checked below.
     product_params = {
         "productType": [0],
-        "rootCategory": INCLUDED_CATEGORY_IDS,
+        "rootCategory": [str(category_id) for category_id in INCLUDED_CATEGORY_IDS],
         "hasMainVideo": True,
         "videoCount_gte": 1,
         "videoCount_lte": MAX_TOTAL_VIDEOS,

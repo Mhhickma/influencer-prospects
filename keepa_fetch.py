@@ -60,6 +60,7 @@ MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 5)
 MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 0)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connections")
+CAMPAIGN_ASINS_PER_ROW = env_int("CAMPAIGN_ASINS_PER_ROW", 1)
 ASIN_RE = re.compile(r"\b[A-Z0-9]{10}\b")
 
 # Amazon US root category IDs used by Keepa Product Finder.
@@ -341,12 +342,14 @@ def select_creator_campaign_asins(max_asins, now_utc):
                     if not campaign_filter(campaign):
                         continue
 
+                    row_added = 0
                     for asin in ASIN_RE.findall(row.get("ASIN List", "")):
                         if asin in campaign_by_asin:
                             continue
 
                         campaign_by_asin[asin] = campaign
                         selected_asins.append(asin)
+                        row_added += 1
 
                         if len(selected_asins) >= max_asins:
                             print(
@@ -354,6 +357,9 @@ def select_creator_campaign_asins(max_asins, now_utc):
                                 f"after scanning {files_scanned} file passes / {rows_scanned} rows"
                             )
                             return selected_asins, campaign_by_asin, files_scanned, rows_scanned
+
+                        if row_added >= CAMPAIGN_ASINS_PER_ROW:
+                            break
 
     print(
         f"Creator Connections: selected {len(selected_asins)} ASINs "

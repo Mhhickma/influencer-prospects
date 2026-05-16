@@ -2,13 +2,12 @@ import csv
 import json
 import os
 import re
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import keepa
 import numpy as np
-
-# Harmless marker so [test-keepa] commits can trigger the small GitHub Actions test run.
 
 
 def env_int(name, default):
@@ -58,9 +57,16 @@ MAX_PRICE = env_float("MAX_PRICE", 100)
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 10000)
 MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 5)
 MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 0)
+LOOSE_MIN_PRICE = env_float("LOOSE_MIN_PRICE", 40)
+LOOSE_MAX_PRICE = env_float("LOOSE_MAX_PRICE", 125)
+LOOSE_MIN_MONTHLY_REVENUE = env_float("LOOSE_MIN_MONTHLY_REVENUE", 5000)
+LOOSE_MAX_TOTAL_VIDEOS = env_int("LOOSE_MAX_TOTAL_VIDEOS", 10)
+LOOSE_MAX_INFLUENCER_VIDEOS = env_int("LOOSE_MAX_INFLUENCER_VIDEOS", 2)
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connections")
 CAMPAIGN_ASINS_PER_ROW = env_int("CAMPAIGN_ASINS_PER_ROW", 1)
+SCAN_HISTORY_FILE = "scan_history.json"
+MAX_SCAN_HISTORY = env_int("MAX_SCAN_HISTORY", 20)
 ASIN_RE = re.compile(r"\b[A-Z0-9]{10}\b")
 
 # Amazon US root category IDs used by Keepa Product Finder.
@@ -289,6 +295,86 @@ def is_excluded_brand(product):
     return any(normalize_filter_value(value) in ignored for value in brand_values)
 
 
+def get_ideal_misses(product_summary):
+    misses = []
+
+    if not product_summary["creator_connection"]:
+        misses.append("no Creator Campaign")
+    if product_summary["main_video_count"] < 1:
+        misses.append("no brand video")
+    if product_summary["influencer_count"] > MAX_INFLUENCER_VIDEOS:
+        misses.append("has influencer videos")
+    if product_summary["video_count"] > MAX_TOTAL_VIDEOS:
+        misses.append("over 5 videos")
+    if product_summary["buybox_price"] <= MIN_PRICE or product_summary["buybox_price"] > MAX_PRICE:
+        misses.append("outside $50-$100")
+    if product_summary["monthly_revenue"] < MIN_MONTHLY_REVENUE:
+        misses.append("under $10k/mo")
+
+    return misses
+
+
+def record_skip(skip_counts, reason):
+    skip_counts[reason] += 1
+
+
+def score_prospect(prospect):
+    score = 0
+
+    if prospect.get("creator_connection"):
+        score += 25
+    if prospect.get("main_video_count", 0) >= 1:
+        score += 20
+    if prospect.get("influencer_count", 0) == 0:
+        score += 15
+    elif prospect.get("influencer_count", 0) <= 2:
+        score += 7
+    if prospect.get("video_count", 0) <= MAX_TOTAL_VIDEOS:
+        score += 10
+
+    revenue = prospect.get("monthly_revenue", 0) or 0
+    score += min(15, int((revenue / max(MIN_MONTHLY_REVENUE, 1)) * 10))
+
+    price = prospect.get("buybox_price", 0) or 0
+    if MIN_PRICE < price <= MAX_PRICE:
+        score += 10
+    elif LOOSE_MIN_PRICE < price <= LOOSE_MAX_PRICE:
+        score += 4
+
+    trend = prospect.get("sales_trend")
+    if trend == "Growing":
+        score += 5
+    elif trend == "Stable":
+        score += 3
+
+    return min(score, 100)
+
+
+def update_scan_history(output, tokens_used):
+    entry = {
+        "last_updated": output["last_updated"],
+        "total": output["total"],
+        "total_ideal": output.get("total_ideal", 0),
+        "total_loose": output.get("total_loose", 0),
+        "creator_connection_matches": output.get("creator_connection_matches", 0),
+        "creator_connection_rows_scanned": output.get("creator_connection_rows_scanned", 0),
+        "skip_counts": output.get("skip_counts", {}),
+        "tokens_used": tokens_used,
+    }
+
+    try:
+        with open(SCAN_HISTORY_FILE, "r", encoding="utf-8") as handle:
+            history = json.load(handle)
+    except (FileNotFoundError, json.JSONDecodeError):
+        history = []
+
+    history = [entry] + [item for item in history if item.get("last_updated") != entry["last_updated"]]
+    history = history[:MAX_SCAN_HISTORY]
+
+    with open(SCAN_HISTORY_FILE, "w", encoding="utf-8") as handle:
+        json.dump(history, handle, indent=2)
+
+
 def parse_campaign_date(value):
     try:
         return datetime.strptime(str(value or "").strip(), "%Y-%m-%d").date()
@@ -393,6 +479,13 @@ def main():
     print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
     print(f"Max influencer videos: {MAX_INFLUENCER_VIDEOS}")
     print(f"Minimum monthly revenue: ${MIN_MONTHLY_REVENUE:,.2f}")
+    print(
+        "Loose section: "
+        f"${LOOSE_MIN_PRICE:.2f}-${LOOSE_MAX_PRICE:.2f}, "
+        f"${LOOSE_MIN_MONTHLY_REVENUE:,.2f}+ revenue, "
+        f"{LOOSE_MAX_TOTAL_VIDEOS} videos max, "
+        f"{LOOSE_MAX_INFLUENCER_VIDEOS} influencer videos max"
+    )
     print(f"New product window: {NEW_PRODUCT_DAYS} days")
     print(f"Included category IDs: {INCLUDED_CATEGORY_IDS}")
     print(f"Excluded category IDs: {EXCLUDED_CATEGORY_IDS}")
@@ -403,6 +496,7 @@ def main():
     min_price_cents = int(MIN_PRICE * 100) + 1
     max_price_cents = int(MAX_PRICE * 100)
     now_utc = datetime.now(timezone.utc)
+    skip_counts = Counter()
 
     print("Reading Creator Connections campaign ASINs...")
     creator_connections_last_updated = get_creator_connections_last_updated()
@@ -416,6 +510,8 @@ def main():
         output = {
             "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
             "total": 0,
+            "total_ideal": 0,
+            "total_loose": 0,
             "scan_source": "creator_connections",
             "included_category_ids": INCLUDED_CATEGORY_IDS,
             "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
@@ -425,10 +521,19 @@ def main():
             "creator_connection_files_scanned": cc_files_scanned,
             "creator_connection_rows_scanned": cc_rows_scanned,
             "creator_connection_matches": 0,
+            "skip_counts": {},
+            "loose_criteria": {
+                "min_price": LOOSE_MIN_PRICE,
+                "max_price": LOOSE_MAX_PRICE,
+                "min_monthly_revenue": LOOSE_MIN_MONTHLY_REVENUE,
+                "max_total_videos": LOOSE_MAX_TOTAL_VIDEOS,
+                "max_influencer_videos": LOOSE_MAX_INFLUENCER_VIDEOS,
+            },
             "prospects": [],
         }
         with open("data.json", "w", encoding="utf-8") as f:
             json.dump(output, f, indent=2)
+        update_scan_history(output, 0)
         print("No ASINs found. Saved empty data.json.")
         return
 
@@ -446,15 +551,18 @@ def main():
             counted_video_total = main_count + influencer_count + other_video_count
             official_video_count = get_official_video_count(product, counted_video_total)
 
-            if official_video_count > MAX_TOTAL_VIDEOS:
+            if official_video_count > LOOSE_MAX_TOTAL_VIDEOS:
+                record_skip(skip_counts, "too_many_videos")
                 print(f"Skipping {asin} - official videoCount is {official_video_count}")
                 continue
 
             if main_count < 1:
+                record_skip(skip_counts, "missing_brand_video")
                 print(f"Skipping {asin} - no creator: Main video found")
                 continue
 
-            if influencer_count > MAX_INFLUENCER_VIDEOS:
+            if influencer_count > LOOSE_MAX_INFLUENCER_VIDEOS:
+                record_skip(skip_counts, "too_many_influencer_videos")
                 print(f"Skipping {asin} - {influencer_count} influencer videos")
                 continue
 
@@ -462,20 +570,23 @@ def main():
             buybox_price = get_current_price(product)
 
             if buybox_price is None:
+                record_skip(skip_counts, "missing_price")
                 print(f"Skipping {asin} - price missing")
                 print(f"  stats.current sample: {(product.get('stats') or {}).get('current', [])[:20]}")
                 print(f"  product videoCount field: {product.get('videoCount')}")
                 print(f"  counted video total: {counted_video_total}")
                 continue
 
-            if buybox_price <= MIN_PRICE or buybox_price > MAX_PRICE:
-                print(f"Skipping {asin} - price ${buybox_price:.2f} outside range")
+            if buybox_price <= LOOSE_MIN_PRICE or buybox_price > LOOSE_MAX_PRICE:
+                record_skip(skip_counts, "price_outside_loose_range")
+                print(f"Skipping {asin} - price ${buybox_price:.2f} outside loose range")
                 continue
 
             monthly_units = product.get("monthlySold", 0) or 0
             monthly_revenue = buybox_price * monthly_units
 
-            if monthly_revenue < MIN_MONTHLY_REVENUE:
+            if monthly_revenue < LOOSE_MIN_MONTHLY_REVENUE:
+                record_skip(skip_counts, "monthly_revenue_too_low")
                 print(f"Skipping {asin} - monthly revenue ${monthly_revenue:,.2f}")
                 continue
 
@@ -500,16 +611,28 @@ def main():
             categories = product.get("categories") or []
 
             if is_excluded_category(product):
+                record_skip(skip_counts, "excluded_category")
                 print(f"Skipping {asin} - excluded category {root_category}")
                 continue
 
             if is_excluded_brand(product):
+                record_skip(skip_counts, "excluded_brand")
                 print(f"Skipping {asin} - excluded brand {brand or brand_store_name}")
                 continue
 
             creator_campaign = creator_connection_matches.get(asin)
+            product_summary = {
+                "creator_connection": creator_campaign is not None,
+                "buybox_price": buybox_price,
+                "monthly_revenue": monthly_revenue,
+                "video_count": official_video_count,
+                "main_video_count": main_count,
+                "influencer_count": influencer_count,
+            }
+            missed_ideal_reasons = get_ideal_misses(product_summary)
+            opportunity_tier = "ideal" if not missed_ideal_reasons else "loose"
 
-            keepa_data[asin] = {
+            prospect = {
                 "asin": asin,
                 "title": product.get("title", "") or "",
                 "brand": brand,
@@ -542,18 +665,38 @@ def main():
                 "categories": categories,
                 "creator_connection": creator_campaign is not None,
                 "creator_connection_campaign": creator_campaign,
+                "opportunity_tier": opportunity_tier,
+                "is_ideal": opportunity_tier == "ideal",
+                "missed_ideal_reasons": missed_ideal_reasons,
             }
+            prospect["opportunity_score"] = score_prospect(prospect)
+            keepa_data[asin] = prospect
 
         except Exception as exc:
+            record_skip(skip_counts, "error")
             print(f"Skipping {asin}: {exc}")
             continue
 
     print(f"\nKeepa filtered to {len(keepa_data)} prospects")
 
     results = list(keepa_data.values())
+    sorted_results = sorted(
+        results,
+        key=lambda x: (
+            0 if x.get("is_ideal") else 1,
+            0 if x.get("creator_connection") else 1,
+            0 if x.get("is_new_90") else 1,
+            x.get("age_days") if x.get("age_days") is not None else 999999,
+            -x.get("opportunity_score", 0),
+            -x.get("monthly_revenue", 0),
+        ),
+    )
+    tokens_used = starting_tokens - api.tokens_left
     output = {
         "last_updated": now_utc.strftime("%Y-%m-%d %H:%M UTC"),
         "total": len(results),
+        "total_ideal": sum(1 for item in results if item.get("is_ideal")),
+        "total_loose": sum(1 for item in results if not item.get("is_ideal")),
         "scan_source": "creator_connections",
         "included_category_ids": INCLUDED_CATEGORY_IDS,
         "excluded_category_ids": EXCLUDED_CATEGORY_IDS,
@@ -563,21 +706,22 @@ def main():
         "creator_connection_files_scanned": cc_files_scanned,
         "creator_connection_rows_scanned": cc_rows_scanned,
         "creator_connection_matches": len(creator_connection_matches),
-        "prospects": sorted(
-            results,
-            key=lambda x: (
-                0 if x.get("creator_connection") else 1,
-                0 if x.get("is_new_90") else 1,
-                x.get("age_days") if x.get("age_days") is not None else 999999,
-                -x.get("monthly_revenue", 0),
-            ),
-        ),
+        "keepa_products_returned": len(products),
+        "skip_counts": dict(skip_counts),
+        "loose_criteria": {
+            "min_price": LOOSE_MIN_PRICE,
+            "max_price": LOOSE_MAX_PRICE,
+            "min_monthly_revenue": LOOSE_MIN_MONTHLY_REVENUE,
+            "max_total_videos": LOOSE_MAX_TOTAL_VIDEOS,
+            "max_influencer_videos": LOOSE_MAX_INFLUENCER_VIDEOS,
+        },
+        "prospects": sorted_results,
     }
 
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
+    update_scan_history(output, tokens_used)
 
-    tokens_used = starting_tokens - api.tokens_left
     print(f"\nSaved {len(results)} prospects to data.json")
     print(f"Tokens used: {tokens_used} | Remaining: {api.tokens_left}")
 

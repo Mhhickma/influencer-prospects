@@ -8,6 +8,8 @@ from pathlib import Path
 import keepa
 import numpy as np
 
+# Harmless marker so [test-keepa] commits can trigger the small GitHub Actions test run.
+
 
 def env_int(name, default):
     value = os.getenv(name)

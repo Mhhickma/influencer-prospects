@@ -22,6 +22,11 @@
   .status-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 40px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted)}
   #import-status{color:var(--green)}
   #scan-summary{padding:10px 40px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface)}
+  .scan-panel{padding:14px 40px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface)}
+  .scan-panel label{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .scan-panel input{width:86px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
+  .scan-panel input:focus{border-color:var(--accent)}
+  .scan-status{font-family:var(--mono);font-size:11px;color:var(--muted)}
   .controls{padding:24px 40px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border)}
   .filter-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 16px;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s}
   .filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(100,87,232,.08)}
@@ -83,6 +88,12 @@
   <span id="last-updated"></span>
 </div>
 <div id="scan-summary"></div>
+<div class="scan-panel">
+  <label for="scan-token-budget">Keepa Tokens</label>
+  <input id="scan-token-budget" type="number" min="10" max="1500" step="10" value="200">
+  <button class="btn btn-primary" type="button" onclick="openScanWorkflow()">Run Scan</button>
+  <span class="scan-status" id="scan-status"></span>
+</div>
 
 <div class="controls">
   <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
@@ -140,6 +151,19 @@ function renderScanSummary(json) {
 
 function formatRejectReason(reason) {
   return String(reason || '').replaceAll('_', ' ');
+}
+
+function openScanWorkflow() {
+  const input = document.getElementById('scan-token-budget');
+  const status = document.getElementById('scan-status');
+  const budget = Math.max(10, Math.min(1500, Number(input.value || 200)));
+  input.value = budget;
+  const text = String(budget);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+  status.textContent = `Copied ${text}. Paste it into token_budget.`;
+  window.open('https://github.com/Mhhickma/influencer-prospects/actions/workflows/fetch.yml', '_blank');
 }
 
 function commissionValue(p) {

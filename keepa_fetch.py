@@ -53,6 +53,7 @@ def env_str_list(name, default=None):
 
 DOMAIN = "US"
 MAX_ASINS = env_int("MAX_ASINS", 100)
+SCAN_TOKEN_BUDGET = env_int("SCAN_TOKEN_BUDGET", 200)
 MIN_PRICE = env_float("MIN_PRICE", 50)
 MAX_PRICE = env_float("MAX_PRICE", 100)
 MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 10000)
@@ -527,20 +528,25 @@ def product_finder_params(page):
     }
 
 
-def find_creator_campaign_product_finder_asins(api, max_asins, creator_connection_matches):
+def find_creator_campaign_product_finder_asins(api, max_asins, token_budget, creator_connection_matches):
     selected_asins = []
     selected = set()
     product_finder_candidates = 0
     product_finder_pages_scanned = 0
 
     for page in range(MAX_PRODUCT_FINDER_PAGES):
+        if product_finder_pages_scanned >= token_budget:
+            break
+
         params = product_finder_params(page)
         asins = api.product_finder(params, domain=DOMAIN, n_products=PRODUCT_FINDER_PAGE_SIZE) or []
         product_finder_pages_scanned += 1
         product_finder_candidates += len(asins)
+        detail_budget = max(0, token_budget - product_finder_pages_scanned)
         print(
             f"Product Finder page {page}: {len(asins)} candidates, "
-            f"{len(selected_asins)} Creator Campaign matches so far"
+            f"{len(selected_asins)} Creator Campaign matches so far, "
+            f"{detail_budget} detail tokens reserved"
         )
 
         for asin in asins:
@@ -551,7 +557,7 @@ def find_creator_campaign_product_finder_asins(api, max_asins, creator_connectio
 
             selected.add(asin)
             selected_asins.append(asin)
-            if len(selected_asins) >= max_asins:
+            if len(selected_asins) >= min(max_asins, detail_budget):
                 return selected_asins, product_finder_candidates, product_finder_pages_scanned
 
         if len(asins) < PRODUCT_FINDER_PAGE_SIZE:
@@ -581,6 +587,7 @@ def main():
     starting_tokens = api.tokens_left
     print(f"Available tokens: {starting_tokens}")
     print(f"MAX_ASINS: {MAX_ASINS}")
+    print(f"Scan token budget: {SCAN_TOKEN_BUDGET}")
     print(f"Price range: over ${MIN_PRICE:.2f} and up to ${MAX_PRICE:.2f}")
     print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
     print(f"Max influencer videos: {MAX_INFLUENCER_VIDEOS}")
@@ -611,8 +618,12 @@ def main():
     asins, product_finder_candidates, product_finder_pages_scanned = find_creator_campaign_product_finder_asins(
         api,
         MAX_ASINS,
+        SCAN_TOKEN_BUDGET,
         creator_connection_matches,
     )
+    detail_budget = max(0, SCAN_TOKEN_BUDGET - product_finder_pages_scanned)
+    if len(asins) > detail_budget:
+        asins = asins[:detail_budget]
     print(f"Selected {len(asins)} Product Finder + Creator Connections ASINs for full Keepa detail")
 
     if not asins:
@@ -633,6 +644,7 @@ def main():
             "creator_connection_matches": 0,
             "product_finder_candidates": product_finder_candidates,
             "product_finder_pages_scanned": product_finder_pages_scanned,
+            "scan_token_budget": SCAN_TOKEN_BUDGET,
             "skip_counts": {},
             "loose_criteria": {
                 "min_price": LOOSE_MIN_PRICE,
@@ -821,6 +833,7 @@ def main():
         "creator_connection_matches": len(asins),
         "product_finder_candidates": product_finder_candidates,
         "product_finder_pages_scanned": product_finder_pages_scanned,
+        "scan_token_budget": SCAN_TOKEN_BUDGET,
         "keepa_products_returned": len(products),
         "skip_counts": dict(skip_counts),
         "loose_criteria": {

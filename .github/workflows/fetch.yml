@@ -5,10 +5,10 @@ on:
     - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
-      max_asins:
-        description: 'Maximum ASINs to fetch. Use 39 for an about-50-token test run.'
+      token_budget:
+        description: 'Approximate Keepa token budget for this scan.'
         required: false
-        default: '39'
+        default: '200'
 
 # Test trigger marker: 100 ASIN campaign-first scan.
 
@@ -36,7 +36,8 @@ jobs:
           CREATORS_CREDENTIAL_ID: ${{ secrets.CREATORS_CREDENTIAL_ID }}
           CREATORS_CREDENTIAL_SECRET: ${{ secrets.CREATORS_CREDENTIAL_SECRET }}
           AFFILIATE_TAG: ${{ vars.AFFILIATE_TAG }}
-          MAX_ASINS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_asins || vars.MAX_ASINS }}
+          SCAN_TOKEN_BUDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || vars.SCAN_TOKEN_BUDGET || '200' }}
+          MAX_ASINS: ${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || vars.MAX_ASINS || '200' }}
         run: python keepa_fetch.py
 
       - name: Commit data

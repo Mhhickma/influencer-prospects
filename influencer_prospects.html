@@ -25,15 +25,16 @@
   .filter-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 16px;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s}
   .filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(100,87,232,.08)}
   .search-wrap{margin-left:auto;position:relative}
-  .search-wrap input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px 7px 54px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:200px;transition:border-color .2s}
+  .search-wrap input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px 7px 32px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:200px;transition:border-color .2s}
   .search-wrap input:focus{border-color:var(--accent)}
   .search-wrap::before{content:'search';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-family:var(--mono);font-size:9px;pointer-events:none}
+  .search-wrap input{padding-left:54px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:32px 40px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s;animation:fadeUp .4s ease both}
   .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(100,87,232,.12)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .card-img{width:100%;height:180px;object-fit:contain;background:var(--surface2);padding:16px;border-bottom:1px solid var(--border)}
-  .card-img-placeholder{width:100%;height:180px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;font-family:var(--mono)}
+  .card-img-placeholder{width:100%;height:180px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:32px}
   .card-body{padding:18px}
   .card-brand{font-size:11px;font-family:var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .card-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -131,6 +132,8 @@ function renderCards(data) {
     const trendIcon = p.sales_trend==='Growing'?'up':p.sales_trend==='Declining'?'down':'stable';
     const trendSign = (p.sales_trend_pct||0)>0?'+':'';
     const ratingColor = (p.rating||0)>=4.5?'green':(p.rating||0)>=4.0?'yellow':'red';
+    const d90 = p.sales_rank_drops_90||0;
+    const d30 = p.sales_rank_drops_30||0;
     const inf = p.influencer_count||0;
     const mainVideos = p.main_video_count||0;
     const otherVideos = p.other_video_count||0;
@@ -139,19 +142,11 @@ function renderCards(data) {
     const infColor = inf===0?'var(--green)':inf<=2?'var(--yellow)':'var(--red)';
     const infLabel = inf===0?'none yet':inf===1?'1 so far':inf+' so far';
 
-    const proxyUrl = p.image_url
-      ? `https://images.weserv.nl/?url=${encodeURIComponent(p.image_url)}&w=400&output=webp`
-      : '';
-    const imgHtml = proxyUrl
-      ? `<img class="card-img" src="${proxyUrl}" alt="${p.brand||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-      : '';
-    const ph = `<div class="card-img-placeholder" ${proxyUrl?'style="display:none"':''}>No image</div>`;
-
     const card = document.createElement('div');
     card.className = 'card';
     card.style.animationDelay = `${i*0.05}s`;
     card.innerHTML = `
-      ${imgHtml}${ph}
+      ${imageMarkup(p)}
       <div class="card-body">
         <div class="card-brand">${p.brand||''}</div>
         <div class="card-title">${p.title||''}</div>
@@ -205,6 +200,46 @@ function renderCards(data) {
       </div>`;
     grid.appendChild(card);
   });
+}
+
+function imageCandidates(p) {
+  const asin = p.asin || '';
+  const candidates = [];
+  if (p.image_url) candidates.push(p.image_url);
+  if (asin) {
+    candidates.push(`https://m.media-amazon.com/images/P/${asin}.01._SL500_.jpg`);
+    candidates.push(`https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SL500_.jpg`);
+    candidates.push(`https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&MarketPlace=US&ASIN=${asin}&ServiceVersion=20070822&ID=AsinImage&WS=1&Format=_SL500_`);
+  }
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function proxiedImageUrl(url) {
+  return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=500&output=webp`;
+}
+
+function tryNextImage(img) {
+  const candidates = JSON.parse(decodeURIComponent(img.dataset.imageCandidates || '%5B%5D'));
+  const nextIndex = Number(img.dataset.imageIndex || 0) + 1;
+  if (nextIndex < candidates.length) {
+    img.dataset.imageIndex = String(nextIndex);
+    img.src = proxiedImageUrl(candidates[nextIndex]);
+    return;
+  }
+
+  img.style.display = 'none';
+  img.nextElementSibling.style.display = 'flex';
+}
+
+function imageMarkup(p) {
+  const candidates = imageCandidates(p);
+  const encodedCandidates = encodeURIComponent(JSON.stringify(candidates));
+  const firstImage = candidates[0] || '';
+  const imgHtml = firstImage
+    ? `<img class="card-img" src="${proxiedImageUrl(firstImage)}" alt="${p.brand||''}" data-image-index="0" data-image-candidates="${encodedCandidates}" onerror="tryNextImage(this)">`
+    : '';
+  const placeholderStyle = firstImage ? 'style="display:none"' : '';
+  return `${imgHtml}<div class="card-img-placeholder" ${placeholderStyle}>No image</div>`;
 }
 
 function setFilter(f,btn) {

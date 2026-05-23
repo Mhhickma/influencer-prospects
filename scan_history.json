@@ -1,5 +1,22 @@
 [
   {
+    "last_updated": "2026-05-23 09:45 UTC",
+    "total": 33,
+    "total_ideal": 2,
+    "total_loose": 31,
+    "scan_source": "product_finder_creator_connections",
+    "creator_connection_asins_loaded": 4365037,
+    "creator_connection_matches": 190,
+    "creator_connection_rows_scanned": 670623,
+    "product_finder_candidates": 1000,
+    "product_finder_pages_scanned": 10,
+    "skip_counts": {
+      "too_many_influencer_videos": 145,
+      "monthly_revenue_too_low": 12
+    },
+    "tokens_used": 310
+  },
+  {
     "last_updated": "2026-05-22 10:43 UTC",
     "total": 37,
     "total_ideal": 1,

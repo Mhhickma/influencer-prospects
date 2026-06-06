@@ -1,8 +1,8 @@
 {
-  "last_updated": "2026-06-05 11:19 UTC",
-  "total": 33,
+  "last_updated": "2026-06-06 09:56 UTC",
+  "total": 37,
   "total_ideal": 4,
-  "total_loose": 29,
+  "total_loose": 33,
   "scan_source": "product_finder_creator_connections",
   "included_category_ids": [
     228013,
@@ -29,18 +29,19 @@
     "Apple Store"
   ],
   "brand_video_required": true,
-  "creator_connections_last_updated": "2026-06-05 11:19 UTC",
+  "creator_connections_last_updated": "2026-06-06 09:56 UTC",
   "creator_connection_files_scanned": 7,
   "creator_connection_rows_scanned": 700398,
-  "creator_connection_asins_loaded": 3847758,
-  "creator_connection_matches": 160,
+  "creator_connection_asins_loaded": 3836512,
+  "creator_connection_matches": 171,
   "product_finder_candidates": 1000,
   "product_finder_pages_scanned": 10,
   "scan_token_budget": 200,
-  "keepa_products_returned": 160,
+  "keepa_products_returned": 171,
   "skip_counts": {
-    "too_many_influencer_videos": 118,
-    "monthly_revenue_too_low": 9
+    "too_many_influencer_videos": 120,
+    "monthly_revenue_too_low": 13,
+    "price_outside_loose_range": 1
   },
   "loose_criteria": {
     "min_price": 40,
@@ -58,8 +59,8 @@
       "amazon_url": "https://www.amazon.com/dp/B0GGB94SP1",
       "image_url": "https://m.media-amazon.com/images/I/71krxjlRU9L.jpg",
       "buybox_price": 62.97,
-      "monthly_units": 1000,
-      "monthly_revenue": 62970.0,
+      "monthly_units": 3000,
+      "monthly_revenue": 188910.0,
       "rating": null,
       "review_count": null,
       "video_count": 4,
@@ -77,7 +78,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7906176,
       "listed_since_iso": "2026-01-12",
-      "age_days": 144,
+      "age_days": 145,
       "is_new_90": false,
       "root_category": 172282,
       "categories": [
@@ -126,7 +127,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7256436,
       "listed_since_iso": "2024-10-18",
-      "age_days": 595,
+      "age_days": 596,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -175,7 +176,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7155936,
       "listed_since_iso": "2024-08-09",
-      "age_days": 665,
+      "age_days": 666,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -225,7 +226,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7000324,
       "listed_since_iso": "2024-04-23",
-      "age_days": 773,
+      "age_days": 774,
       "is_new_90": false,
       "root_category": 2972638011,
       "categories": [
@@ -274,7 +275,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 8039716,
       "listed_since_iso": "2026-04-15",
-      "age_days": 51,
+      "age_days": 52,
       "is_new_90": true,
       "root_category": 2619525011,
       "categories": [
@@ -297,6 +298,59 @@
         "over 5 videos"
       ],
       "opportunity_score": 73
+    },
+    {
+      "asin": "B0GS19P3BB",
+      "title": "Antarctic Star Ice Maker, Portable Ice Machine with Self-Cleaning Function, 8 Cubes in 6 Mins Fast Countertop Ice Making, Compact Ice Cube Maker for Home, Kitchen, RV, Travel, Steel",
+      "brand": "Antarctic Star",
+      "brand_store_url": "https://www.amazon.com/stores/AntarcticStar",
+      "amazon_url": "https://www.amazon.com/dp/B0GS19P3BB",
+      "image_url": "https://m.media-amazon.com/images/I/716y5UJOEOL.jpg",
+      "buybox_price": 124.99,
+      "monthly_units": 100,
+      "monthly_revenue": 12499.0,
+      "rating": null,
+      "review_count": null,
+      "video_count": 7,
+      "counted_video_total": 7,
+      "main_video_count": 1,
+      "influencer_count": 5,
+      "other_video_count": 1,
+      "sales_trend": "Stable",
+      "sales_trend_pct": 0,
+      "sales_rank_drops_90": 0,
+      "sales_rank_drops_30": 0,
+      "daily_sales": 0,
+      "accelerating": false,
+      "has_aplus": false,
+      "has_aplus_from_manufacturer": false,
+      "listed_since": 7988084,
+      "listed_since_iso": "2026-03-10",
+      "age_days": 88,
+      "is_new_90": true,
+      "root_category": 2619525011,
+      "categories": [
+        2399939011,
+        16310161
+      ],
+      "creator_connection": true,
+      "creator_connection_campaign": {
+        "campaign_id": "amzn1.campaign.2UHOYM0FGRLOZ",
+        "campaign_name": "\ud83e\uddca Join Antarctic Star Affiliate \u2013 Earn 10% on Premium Ice Makers",
+        "campaign_brand": "Antarctic Star",
+        "commission_rate": "10.00%",
+        "campaign_start_date": "2026-04-10",
+        "campaign_end_date": "2026-06-30",
+        "recommended": false,
+        "active": true
+      },
+      "opportunity_tier": "loose",
+      "is_ideal": false,
+      "missed_ideal_reasons": [
+        "over 5 videos",
+        "outside $50-$100"
+      ],
+      "opportunity_score": 64
     },
     {
       "asin": "B0GR4C4XFV",
@@ -325,7 +379,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7979396,
       "listed_since_iso": "2026-03-04",
-      "age_days": 93,
+      "age_days": 94,
       "is_new_90": false,
       "root_category": 1055398,
       "categories": [
@@ -376,7 +430,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7943160,
       "listed_since_iso": "2026-02-07",
-      "age_days": 118,
+      "age_days": 119,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -427,7 +481,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7907148,
       "listed_since_iso": "2026-01-13",
-      "age_days": 143,
+      "age_days": 144,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -480,7 +534,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7897920,
       "listed_since_iso": "2026-01-06",
-      "age_days": 149,
+      "age_days": 150,
       "is_new_90": false,
       "root_category": 1055398,
       "categories": [
@@ -531,7 +585,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7790908,
       "listed_since_iso": "2025-10-24",
-      "age_days": 224,
+      "age_days": 225,
       "is_new_90": false,
       "root_category": 172282,
       "categories": [
@@ -554,58 +608,6 @@
         "outside $50-$100"
       ],
       "opportunity_score": 92
-    },
-    {
-      "asin": "B0FVFTY4CG",
-      "title": "SPOTMINDERS Apple MFi Certified Wallet Tracker PRO for Travel Credit Card Design Works with Apple Find My IP68 Waterproof Rechargeable Tracking Card for Wallet Luggage Passport 0.07in Slim Item Finder",
-      "brand": "Spotminders.",
-      "brand_store_url": "https://www.amazon.com/stores/Spotminders",
-      "amazon_url": "https://www.amazon.com/dp/B0FVFTY4CG",
-      "image_url": "https://m.media-amazon.com/images/I/81Ht5iZD1mL.jpg",
-      "buybox_price": 44.97,
-      "monthly_units": 4000,
-      "monthly_revenue": 179880.0,
-      "rating": null,
-      "review_count": null,
-      "video_count": 10,
-      "counted_video_total": 10,
-      "main_video_count": 1,
-      "influencer_count": 6,
-      "other_video_count": 3,
-      "sales_trend": "Stable",
-      "sales_trend_pct": 0,
-      "sales_rank_drops_90": 0,
-      "sales_rank_drops_30": 0,
-      "daily_sales": 0,
-      "accelerating": false,
-      "has_aplus": false,
-      "has_aplus_from_manufacturer": false,
-      "listed_since": 7769420,
-      "listed_since_iso": "2025-10-09",
-      "age_days": 239,
-      "is_new_90": false,
-      "root_category": 172282,
-      "categories": [
-        18022313011
-      ],
-      "creator_connection": true,
-      "creator_connection_campaign": {
-        "campaign_id": "amzn1.campaign.30FI5JHUMMPTM",
-        "campaign_name": "SPOTMINDERS. Apple MFi Certified Wallet Tracking Card - New Credit Card Design",
-        "campaign_brand": "Spotminders.",
-        "commission_rate": "25.00%",
-        "campaign_start_date": "2025-10-30",
-        "campaign_end_date": "2026-09-30",
-        "recommended": false,
-        "active": true
-      },
-      "opportunity_tier": "loose",
-      "is_ideal": false,
-      "missed_ideal_reasons": [
-        "over 5 videos",
-        "outside $50-$100"
-      ],
-      "opportunity_score": 67
     },
     {
       "asin": "B0FQ5WQGPG",
@@ -686,7 +688,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7687548,
       "listed_since_iso": "2025-08-13",
-      "age_days": 295,
+      "age_days": 296,
       "is_new_90": false,
       "root_category": 172282,
       "categories": [
@@ -738,7 +740,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7598028,
       "listed_since_iso": "2025-06-12",
-      "age_days": 358,
+      "age_days": 359,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -789,7 +791,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7492740,
       "listed_since_iso": "2025-03-31",
-      "age_days": 431,
+      "age_days": 432,
       "is_new_90": false,
       "root_category": 172282,
       "categories": [
@@ -812,6 +814,57 @@
         "over 5 videos"
       ],
       "opportunity_score": 73
+    },
+    {
+      "asin": "B0DSKGWJDG",
+      "title": "Aootek New Solar Motion Sensor Lights 120 LEDs with Lights Reflector,270\u00b0 Wide Angle, IP65 Waterproof, Step Lights for Front Door, Yard, Garage, Deck (Black, Daylight White, 8-Pack)",
+      "brand": "Aootek",
+      "brand_store_url": "https://www.amazon.com/stores/Lightupeveryconer",
+      "amazon_url": "https://www.amazon.com/dp/B0DSKGWJDG",
+      "image_url": "https://m.media-amazon.com/images/I/71DaeGTpzQL.jpg",
+      "buybox_price": 49.99,
+      "monthly_units": 300,
+      "monthly_revenue": 14997.0,
+      "rating": null,
+      "review_count": null,
+      "video_count": 3,
+      "counted_video_total": 3,
+      "main_video_count": 1,
+      "influencer_count": 1,
+      "other_video_count": 1,
+      "sales_trend": "Stable",
+      "sales_trend_pct": 0,
+      "sales_rank_drops_90": 0,
+      "sales_rank_drops_30": 0,
+      "daily_sales": 0,
+      "accelerating": false,
+      "has_aplus": false,
+      "has_aplus_from_manufacturer": false,
+      "listed_since": 7377516,
+      "listed_since_iso": "2025-01-10",
+      "age_days": 512,
+      "is_new_90": false,
+      "root_category": 228013,
+      "categories": [
+        5486439011
+      ],
+      "creator_connection": true,
+      "creator_connection_campaign": {
+        "campaign_id": "amzn1.campaign.2W3PA68HMM033",
+        "campaign_name": "Aootek Best Seller Solar Light \u2013 Lighting for Garden, Patio, Yard & Pathway",
+        "campaign_brand": "Aootek",
+        "commission_rate": "10.00%",
+        "campaign_start_date": "2026-04-06",
+        "campaign_end_date": "2026-07-31",
+        "recommended": false,
+        "active": true
+      },
+      "opportunity_tier": "loose",
+      "is_ideal": false,
+      "missed_ideal_reasons": [
+        "outside $50-$100"
+      ],
+      "opportunity_score": 83
     },
     {
       "asin": "B0DMR6P9X2",
@@ -840,7 +893,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7292282,
       "listed_since_iso": "2024-11-12",
-      "age_days": 570,
+      "age_days": 571,
       "is_new_90": false,
       "root_category": 172282,
       "categories": [
@@ -863,6 +916,57 @@
         "outside $50-$100"
       ],
       "opportunity_score": 77
+    },
+    {
+      "asin": "B0DK8P14RR",
+      "title": "daphino 2500LM Solar Lights Outdoor with Motion Sensor,3 Head 270\u00b0 Wide Angle Street Area Lights,IP65 Waterproof Security Lighting with 3 Modes(Remote,3 Pcs)",
+      "brand": "daphino",
+      "brand_store_url": "https://www.amazon.com/stores/ChargebySunLightUpHome",
+      "amazon_url": "https://www.amazon.com/dp/B0DK8P14RR",
+      "image_url": "https://m.media-amazon.com/images/I/81GaQalLKgL.jpg",
+      "buybox_price": 45.99,
+      "monthly_units": 300,
+      "monthly_revenue": 13797.0,
+      "rating": null,
+      "review_count": null,
+      "video_count": 2,
+      "counted_video_total": 2,
+      "main_video_count": 1,
+      "influencer_count": 1,
+      "other_video_count": 0,
+      "sales_trend": "Stable",
+      "sales_trend_pct": 0,
+      "sales_rank_drops_90": 0,
+      "sales_rank_drops_30": 0,
+      "daily_sales": 0,
+      "accelerating": false,
+      "has_aplus": false,
+      "has_aplus_from_manufacturer": false,
+      "listed_since": 7256420,
+      "listed_since_iso": "2024-10-18",
+      "age_days": 596,
+      "is_new_90": false,
+      "root_category": 228013,
+      "categories": [
+        5772200011
+      ],
+      "creator_connection": true,
+      "creator_connection_campaign": {
+        "campaign_id": "amzn1.campaign.5DJHARBU5P9D",
+        "campaign_name": "Limited Time Deal for daphino Solar Lights",
+        "campaign_brand": "daphino",
+        "commission_rate": "20.00%",
+        "campaign_start_date": "2026-04-06",
+        "campaign_end_date": "2026-08-01",
+        "recommended": false,
+        "active": true
+      },
+      "opportunity_tier": "loose",
+      "is_ideal": false,
+      "missed_ideal_reasons": [
+        "outside $50-$100"
+      ],
+      "opportunity_score": 82
     },
     {
       "asin": "B0DHTQG6N6",
@@ -891,7 +995,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7221774,
       "listed_since_iso": "2024-09-24",
-      "age_days": 619,
+      "age_days": 620,
       "is_new_90": false,
       "root_category": 172282,
       "categories": [
@@ -943,7 +1047,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7201968,
       "listed_since_iso": "2024-09-10",
-      "age_days": 633,
+      "age_days": 634,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -974,9 +1078,9 @@
       "brand_store_url": "https://www.amazon.com/stores/Electactic",
       "amazon_url": "https://www.amazon.com/dp/B0DFH1WPMC",
       "image_url": "https://m.media-amazon.com/images/I/71oLd5NNknL.jpg",
-      "buybox_price": 74.46,
-      "monthly_units": 200,
-      "monthly_revenue": 14892.0,
+      "buybox_price": 89.99,
+      "monthly_units": 300,
+      "monthly_revenue": 26997.0,
       "rating": null,
       "review_count": null,
       "video_count": 9,
@@ -994,7 +1098,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 7183244,
       "listed_since_iso": "2024-08-28",
-      "age_days": 646,
+      "age_days": 647,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -1016,18 +1120,18 @@
       "missed_ideal_reasons": [
         "over 5 videos"
       ],
-      "opportunity_score": 72
+      "opportunity_score": 73
     },
     {
-      "asin": "B0D3LGT8M3",
-      "title": "GoveeLife Smart Ice Maker Countertop, Portable Ice Machine with Voice Control, 9 Ice Cubes in 6 Minutes 3 Sizes, 26lbs/24Hrs, Self Cleaning RGB Lights, Quiet Ice Maker with Scoop for Kitchen Silver",
-      "brand": "GoveeLife",
-      "brand_store_url": "https://www.amazon.com/stores/GoveeLife",
-      "amazon_url": "https://www.amazon.com/dp/B0D3LGT8M3",
-      "image_url": "https://m.media-amazon.com/images/I/711wLFuluML.jpg",
-      "buybox_price": 119.99,
-      "monthly_units": 1000,
-      "monthly_revenue": 119990.0,
+      "asin": "B0D1KC72YP",
+      "title": "SUNLU PETG Filament 1.75mm 4KG Bundle (4x1kg Black),Good Layer Adhesion,Weather-Resistant & High Impact for Outdoor Parts and Mechanical Gears, Less Stringing, Dimensional Accuracy +/- 0.02mm.",
+      "brand": "SUNLU",
+      "brand_store_url": "https://www.amazon.com/stores/SUNLU",
+      "amazon_url": "https://www.amazon.com/dp/B0D1KC72YP",
+      "image_url": "https://m.media-amazon.com/images/I/71X1cS6xLwL.jpg",
+      "buybox_price": 42.99,
+      "monthly_units": 3000,
+      "monthly_revenue": 128970.0,
       "rating": null,
       "review_count": null,
       "video_count": 10,
@@ -1043,23 +1147,22 @@
       "accelerating": false,
       "has_aplus": false,
       "has_aplus_from_manufacturer": false,
-      "listed_since": 7178820,
-      "listed_since_iso": "2024-08-25",
-      "age_days": 649,
+      "listed_since": 6876480,
+      "listed_since_iso": "2024-01-28",
+      "age_days": 860,
       "is_new_90": false,
-      "root_category": 2619525011,
+      "root_category": 16310091,
       "categories": [
-        2399939011,
-        16310161
+        6066129011
       ],
       "creator_connection": true,
       "creator_connection_campaign": {
-        "campaign_id": "amzn1.campaign.37CRWDI543HQ3",
-        "campaign_name": "GoveeLife H717D Smart Ice Maker 1S, up to 28%off, 10% commssion",
-        "campaign_brand": "GoveeLife",
-        "commission_rate": "10.00%",
-        "campaign_start_date": "2026-05-20",
-        "campaign_end_date": "2026-06-20",
+        "campaign_id": "amzn1.campaign.2IFU26ZPYNI1N",
+        "campaign_name": "5000-12%-B0D1KC72YP-PETG-20260519 to 20260618",
+        "campaign_brand": "SUNLU",
+        "commission_rate": "12.00%",
+        "campaign_start_date": "2026-05-19",
+        "campaign_end_date": "2026-06-18",
         "recommended": false,
         "active": true
       },
@@ -1098,7 +1201,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6767300,
       "listed_since_iso": "2023-11-13",
-      "age_days": 934,
+      "age_days": 935,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1150,7 +1253,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6766252,
       "listed_since_iso": "2023-11-12",
-      "age_days": 935,
+      "age_days": 936,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1201,7 +1304,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6717984,
       "listed_since_iso": "2023-10-10",
-      "age_days": 969,
+      "age_days": 970,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1253,7 +1356,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6717976,
       "listed_since_iso": "2023-10-10",
-      "age_days": 969,
+      "age_days": 970,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1306,7 +1409,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6650340,
       "listed_since_iso": "2023-08-24",
-      "age_days": 1016,
+      "age_days": 1017,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1346,8 +1449,8 @@
       "video_count": 10,
       "counted_video_total": 10,
       "main_video_count": 1,
-      "influencer_count": 5,
-      "other_video_count": 4,
+      "influencer_count": 6,
+      "other_video_count": 3,
       "sales_trend": "Stable",
       "sales_trend_pct": 0,
       "sales_rank_drops_90": 0,
@@ -1358,7 +1461,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6646188,
       "listed_since_iso": "2023-08-21",
-      "age_days": 1019,
+      "age_days": 1020,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1372,6 +1475,57 @@
         "commission_rate": "12.00%",
         "campaign_start_date": "2026-04-20",
         "campaign_end_date": "2027-04-18",
+        "recommended": false,
+        "active": true
+      },
+      "opportunity_tier": "loose",
+      "is_ideal": false,
+      "missed_ideal_reasons": [
+        "over 5 videos"
+      ],
+      "opportunity_score": 73
+    },
+    {
+      "asin": "B0BYYY51HJ",
+      "title": "PalliPartners Compound Microscope for Adults & Students - 100X-2000X High-Power Biological Microscope for Students, School Lab & Home Education, with Slides Set & Phone Adapter (White)",
+      "brand": "PalliPartners",
+      "brand_store_url": "https://www.amazon.com/stores/PalliPartners",
+      "amazon_url": "https://www.amazon.com/dp/B0BYYY51HJ",
+      "image_url": "https://m.media-amazon.com/images/I/71h-3XSV27L.jpg",
+      "buybox_price": 94.99,
+      "monthly_units": 800,
+      "monthly_revenue": 75992.0,
+      "rating": null,
+      "review_count": null,
+      "video_count": 10,
+      "counted_video_total": 10,
+      "main_video_count": 1,
+      "influencer_count": 6,
+      "other_video_count": 3,
+      "sales_trend": "Stable",
+      "sales_trend_pct": 0,
+      "sales_rank_drops_90": 0,
+      "sales_rank_drops_30": 0,
+      "daily_sales": 0,
+      "accelerating": false,
+      "has_aplus": false,
+      "has_aplus_from_manufacturer": false,
+      "listed_since": 6424202,
+      "listed_since_iso": "2023-03-20",
+      "age_days": 1174,
+      "is_new_90": false,
+      "root_category": 172282,
+      "categories": [
+        10824789011
+      ],
+      "creator_connection": true,
+      "creator_connection_campaign": {
+        "campaign_id": "amzn1.campaign.CJUJQ8GUKG2S",
+        "campaign_name": "Promote Our Professional Monocular Microscope & Earn Commission",
+        "campaign_brand": "PalliPartners",
+        "commission_rate": "10.00%",
+        "campaign_start_date": "2026-04-13",
+        "campaign_end_date": "2026-09-30",
         "recommended": false,
         "active": true
       },
@@ -1409,7 +1563,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 6386626,
       "listed_since_iso": "2023-02-22",
-      "age_days": 1199,
+      "age_days": 1200,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -1460,7 +1614,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 5924850,
       "listed_since_iso": "2022-04-07",
-      "age_days": 1519,
+      "age_days": 1520,
       "is_new_90": false,
       "root_category": 228013,
       "categories": [
@@ -1492,8 +1646,8 @@
       "amazon_url": "https://www.amazon.com/dp/B09QYJMGCH",
       "image_url": "https://m.media-amazon.com/images/I/71bik3nO-tL.jpg",
       "buybox_price": 69.99,
-      "monthly_units": 100,
-      "monthly_revenue": 6999.0,
+      "monthly_units": 300,
+      "monthly_revenue": 20997.0,
       "rating": null,
       "review_count": null,
       "video_count": 10,
@@ -1511,7 +1665,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 5816448,
       "listed_since_iso": "2022-01-22",
-      "age_days": 1595,
+      "age_days": 1596,
       "is_new_90": false,
       "root_category": 1055398,
       "categories": [
@@ -1525,58 +1679,6 @@
         "commission_rate": "10.00%",
         "campaign_start_date": "2026-04-30",
         "campaign_end_date": "2026-06-30",
-        "recommended": false,
-        "active": true
-      },
-      "opportunity_tier": "loose",
-      "is_ideal": false,
-      "missed_ideal_reasons": [
-        "over 5 videos",
-        "under $10k/mo"
-      ],
-      "opportunity_score": 64
-    },
-    {
-      "asin": "B09Q7Y8821",
-      "title": "Tuffenough Solar Outdoor Lights 2500LM 210 LED Security Lights with Remote Control,3 Heads Motion Sensor Lights, IP65 Waterproof,270\u00b0 Wide Angle Flood Wall Lights with 3 Modes(3 Packs)",
-      "brand": "Tuffenough",
-      "brand_store_url": "https://www.amazon.com/stores/SolarOutdoorLights",
-      "amazon_url": "https://www.amazon.com/dp/B09Q7Y8821",
-      "image_url": "https://m.media-amazon.com/images/I/81veVN3C6ZL.jpg",
-      "buybox_price": 54.99,
-      "monthly_units": 500,
-      "monthly_revenue": 27495.0,
-      "rating": null,
-      "review_count": null,
-      "video_count": 10,
-      "counted_video_total": 10,
-      "main_video_count": 1,
-      "influencer_count": 3,
-      "other_video_count": 6,
-      "sales_trend": "Stable",
-      "sales_trend_pct": 0,
-      "sales_rank_drops_90": 0,
-      "sales_rank_drops_30": 0,
-      "daily_sales": 0,
-      "accelerating": false,
-      "has_aplus": false,
-      "has_aplus_from_manufacturer": false,
-      "listed_since": 5801928,
-      "listed_since_iso": "2022-01-12",
-      "age_days": 1605,
-      "is_new_90": false,
-      "root_category": 228013,
-      "categories": [
-        495238
-      ],
-      "creator_connection": true,
-      "creator_connection_campaign": {
-        "campaign_id": "amzn1.campaign.4NW7KUU40KCF",
-        "campaign_name": "Creators Exclusive \ud83d\udcb0 | Top-Rated Solar Lights for Backyards",
-        "campaign_brand": "Tuffenough",
-        "commission_rate": "12.00%",
-        "campaign_start_date": "2026-04-20",
-        "campaign_end_date": "2027-04-18",
         "recommended": false,
         "active": true
       },
@@ -1614,7 +1716,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 5402972,
       "listed_since_iso": "2021-04-10",
-      "age_days": 1882,
+      "age_days": 1883,
       "is_new_90": false,
       "root_category": 1064954,
       "categories": [
@@ -1665,7 +1767,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 5379416,
       "listed_since_iso": "2021-03-24",
-      "age_days": 1898,
+      "age_days": 1899,
       "is_new_90": false,
       "root_category": 2619525011,
       "categories": [
@@ -1691,6 +1793,57 @@
       "opportunity_score": 74
     },
     {
+      "asin": "B08G4Y6C65",
+      "title": "TOMLOV DM9 7\" Digital Microscope: 1080P 1200X Coin Microscope Magnifier, 12MP Ultra-Precise Focusing LCD Soldering Microscopes for Adults, PC View, 16GB",
+      "brand": "TOMLOV",
+      "brand_store_url": "https://www.amazon.com/stores/TOMLOV-MoreThanAMicroscope",
+      "amazon_url": "https://www.amazon.com/dp/B08G4Y6C65",
+      "image_url": "https://m.media-amazon.com/images/I/71pW8YJIV8L.jpg",
+      "buybox_price": 95.99,
+      "monthly_units": 300,
+      "monthly_revenue": 28797.0,
+      "rating": null,
+      "review_count": null,
+      "video_count": 10,
+      "counted_video_total": 10,
+      "main_video_count": 1,
+      "influencer_count": 6,
+      "other_video_count": 3,
+      "sales_trend": "Stable",
+      "sales_trend_pct": 0,
+      "sales_rank_drops_90": 0,
+      "sales_rank_drops_30": 0,
+      "daily_sales": 0,
+      "accelerating": false,
+      "has_aplus": false,
+      "has_aplus_from_manufacturer": false,
+      "listed_since": 5064900,
+      "listed_since_iso": "2020-08-18",
+      "age_days": 2118,
+      "is_new_90": false,
+      "root_category": 172282,
+      "categories": [
+        2742273011
+      ],
+      "creator_connection": true,
+      "creator_connection_campaign": {
+        "campaign_id": "amzn1.campaign.FYJ9JGZNMMNS",
+        "campaign_name": "DM9",
+        "campaign_brand": "TOMLOV",
+        "commission_rate": "10.00%",
+        "campaign_start_date": "2025-11-18",
+        "campaign_end_date": "2026-11-18",
+        "recommended": false,
+        "active": true
+      },
+      "opportunity_tier": "loose",
+      "is_ideal": false,
+      "missed_ideal_reasons": [
+        "over 5 videos"
+      ],
+      "opportunity_score": 73
+    },
+    {
       "asin": "B06XS1P6NG",
       "title": "California Design Den Soft 100% Cotton Queen Sheet Set, 400 Thread Count Good Housekeeping Award Winner, Silky Smooth Sateen Weave with Deep Pockets, Breathable and Durable Cotton Bedding Set - White",
       "brand": "California Design Den",
@@ -1698,8 +1851,8 @@
       "amazon_url": "https://www.amazon.com/dp/B06XS1P6NG",
       "image_url": "https://m.media-amazon.com/images/I/71G+CKODHRL.jpg",
       "buybox_price": 52.99,
-      "monthly_units": 5000,
-      "monthly_revenue": 264950.0,
+      "monthly_units": 4000,
+      "monthly_revenue": 211960.0,
       "rating": null,
       "review_count": null,
       "video_count": 10,
@@ -1717,7 +1870,7 @@
       "has_aplus_from_manufacturer": false,
       "listed_since": 3270660,
       "listed_since_iso": "2017-03-21",
-      "age_days": 3363,
+      "age_days": 3364,
       "is_new_90": false,
       "root_category": 1055398,
       "categories": [
@@ -1740,6 +1893,58 @@
         "over 5 videos"
       ],
       "opportunity_score": 73
+    },
+    {
+      "asin": "B09V7PCR1J",
+      "title": "EZPIK Pro 43\" Foldable Grabber Reacher Tool for Seniors - Grabbers for Elderly Reaching Tool Heavy Duty Pickup Trash Picker Upper Equipment - Claw Grabber Stick for Reaching Aids, Weed Gripper 2-Pack",
+      "brand": "EZPIK",
+      "brand_store_url": "https://www.amazon.com/stores/EZPIK",
+      "amazon_url": "https://www.amazon.com/dp/B09V7PCR1J",
+      "image_url": "https://m.media-amazon.com/images/I/818evM95CzL.jpg",
+      "buybox_price": 44.95,
+      "monthly_units": 2000,
+      "monthly_revenue": 89900.0,
+      "rating": null,
+      "review_count": null,
+      "video_count": 10,
+      "counted_video_total": 10,
+      "main_video_count": 1,
+      "influencer_count": 5,
+      "other_video_count": 4,
+      "sales_trend": "Stable",
+      "sales_trend_pct": 0,
+      "sales_rank_drops_90": 0,
+      "sales_rank_drops_30": 0,
+      "daily_sales": 0,
+      "accelerating": false,
+      "has_aplus": false,
+      "has_aplus_from_manufacturer": false,
+      "listed_since": 0,
+      "listed_since_iso": "",
+      "age_days": null,
+      "is_new_90": false,
+      "root_category": 16310091,
+      "categories": [
+        3310332011
+      ],
+      "creator_connection": true,
+      "creator_connection_campaign": {
+        "campaign_id": "amzn1.campaign.I0ALOTWHZRPL",
+        "campaign_name": "15% commission - EZPIK Reaching Aids - 392 Family",
+        "campaign_brand": "EZPIK",
+        "commission_rate": "15.00%",
+        "campaign_start_date": "2026-01-14",
+        "campaign_end_date": "2026-12-31",
+        "recommended": false,
+        "active": true
+      },
+      "opportunity_tier": "loose",
+      "is_ideal": false,
+      "missed_ideal_reasons": [
+        "over 5 videos",
+        "outside $50-$100"
+      ],
+      "opportunity_score": 67
     }
   ]
 }

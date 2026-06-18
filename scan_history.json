@@ -1,5 +1,22 @@
 [
   {
+    "last_updated": "2026-06-18 11:46 UTC",
+    "total": 34,
+    "total_ideal": 3,
+    "total_loose": 31,
+    "scan_source": "product_finder_creator_connections",
+    "creator_connection_asins_loaded": 4410384,
+    "creator_connection_matches": 190,
+    "creator_connection_rows_scanned": 707046,
+    "product_finder_candidates": 1000,
+    "product_finder_pages_scanned": 10,
+    "skip_counts": {
+      "too_many_influencer_videos": 152,
+      "monthly_revenue_too_low": 4
+    },
+    "tokens_used": 275
+  },
+  {
     "last_updated": "2026-06-17 12:11 UTC",
     "total": 35,
     "total_ideal": 5,
@@ -324,22 +341,5 @@
       "price_outside_loose_range": 1
     },
     "tokens_used": 300
-  },
-  {
-    "last_updated": "2026-05-29 11:21 UTC",
-    "total": 33,
-    "total_ideal": 4,
-    "total_loose": 29,
-    "scan_source": "product_finder_creator_connections",
-    "creator_connection_asins_loaded": 4505949,
-    "creator_connection_matches": 190,
-    "creator_connection_rows_scanned": 700398,
-    "product_finder_candidates": 1000,
-    "product_finder_pages_scanned": 10,
-    "skip_counts": {
-      "too_many_influencer_videos": 136,
-      "monthly_revenue_too_low": 21
-    },
-    "tokens_used": 275
   }
 ]

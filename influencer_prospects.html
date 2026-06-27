@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -72,6 +72,7 @@
   .btn:hover{opacity:.8}
   .btn-primary{background:var(--accent);color:#fff}
   .btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+  .btn-danger{background:var(--red);color:#fff}
   .empty{grid-column:1/-1;text-align:center;padding:80px;color:var(--muted);font-family:var(--mono);font-size:14px}
 </style>
 </head>
@@ -95,6 +96,7 @@
   <label for="scan-token-budget">Keepa Tokens</label>
   <input id="scan-token-budget" type="number" min="10" max="1500" step="10" value="200">
   <button class="btn btn-primary" type="button" onclick="openScanWorkflow()">Run Scan</button>
+  <button class="btn btn-danger" type="button" onclick="clearProspectPage()">Clear Page</button>
   <span class="scan-status" id="scan-status"></span>
 </div>
 
@@ -189,6 +191,21 @@ function openScanWorkflow() {
   window.open('https://github.com/Mhhickma/influencer-prospects/actions/workflows/fetch.yml', '_blank');
 }
 
+function clearProspectPage() {
+  if (!confirm('Clear all products from this page view? Future scans can add new products again.')) return;
+  prospects = [];
+  activeFilter = 'all';
+  searchTerm = '';
+  document.querySelectorAll('.filter-btn').forEach((button, index) => {
+    button.classList.toggle('active', index === 0);
+  });
+  const searchInput = document.querySelector('.search-wrap input');
+  if (searchInput) searchInput.value = '';
+  document.getElementById('import-status').textContent = '0 prospects loaded';
+  document.getElementById('last-updated').textContent = 'Page cleared';
+  document.getElementById('scan-summary').textContent = 'Products cleared from this page view. Run Scan can add new prospects again.';
+  renderCards(prospects);
+}
 function commissionValue(p) {
   const raw = (p.creator_connection_campaign || {}).commission_rate || '';
   const value = parseFloat(String(raw).replace('%', ''));
@@ -429,4 +446,3 @@ document.addEventListener('DOMContentLoaded', loadData);
 </script>
 </body>
 </html>
-

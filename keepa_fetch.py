@@ -55,16 +55,25 @@ def env_str_list(name, default=None):
 DOMAIN = "US"
 MAX_ASINS = env_int("MAX_ASINS", 100)
 SCAN_TOKEN_BUDGET = env_int("SCAN_TOKEN_BUDGET", 200)
-MIN_PRICE = env_float("MIN_PRICE", 50)
-MAX_PRICE = env_float("MAX_PRICE", 100)
-MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 10000)
-MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 5)
-MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 6)
-LOOSE_MIN_PRICE = env_float("LOOSE_MIN_PRICE", 40)
-LOOSE_MAX_PRICE = env_float("LOOSE_MAX_PRICE", 125)
-LOOSE_MIN_MONTHLY_REVENUE = env_float("LOOSE_MIN_MONTHLY_REVENUE", 5000)
+MIN_PRICE = env_float("MIN_PRICE", 35)
+MAX_PRICE = env_float("MAX_PRICE", 125)
+MIN_MONTHLY_REVENUE = env_float("MIN_MONTHLY_REVENUE", 20000)
+MIN_MONTHLY_UNITS = env_int("MIN_MONTHLY_UNITS", 100)
+MIN_RATING = env_float("MIN_RATING", 4.0)
+MIN_REVIEW_COUNT = env_int("MIN_REVIEW_COUNT", 20)
+MIN_COMMISSION_PERCENT = env_float("MIN_COMMISSION_PERCENT", 10)
+MAX_TOTAL_VIDEOS = env_int("MAX_TOTAL_VIDEOS", 8)
+MAX_INFLUENCER_VIDEOS = env_int("MAX_INFLUENCER_VIDEOS", 3)
+LOOSE_MIN_PRICE = env_float("LOOSE_MIN_PRICE", 25)
+LOOSE_MAX_PRICE = env_float("LOOSE_MAX_PRICE", 150)
+LOOSE_MIN_MONTHLY_REVENUE = env_float("LOOSE_MIN_MONTHLY_REVENUE", 10000)
+LOOSE_MIN_MONTHLY_UNITS = env_int("LOOSE_MIN_MONTHLY_UNITS", 100)
+LOOSE_MIN_RATING = env_float("LOOSE_MIN_RATING", 4.0)
+LOOSE_MIN_REVIEW_COUNT = env_int("LOOSE_MIN_REVIEW_COUNT", 20)
+LOOSE_MIN_COMMISSION_PERCENT = env_float("LOOSE_MIN_COMMISSION_PERCENT", 10)
 LOOSE_MAX_TOTAL_VIDEOS = env_int("LOOSE_MAX_TOTAL_VIDEOS", 10)
-LOOSE_MAX_INFLUENCER_VIDEOS = env_int("LOOSE_MAX_INFLUENCER_VIDEOS", 6)
+LOOSE_MAX_INFLUENCER_VIDEOS = env_int("LOOSE_MAX_INFLUENCER_VIDEOS", 8)
+SEARCH_QUERY = os.getenv("SEARCH_QUERY", "").strip()
 NEW_PRODUCT_DAYS = env_int("NEW_PRODUCT_DAYS", 90)
 CREATOR_CONNECTIONS_DIR = os.getenv("CREATOR_CONNECTIONS_DIR", "creator-connections")
 CAMPAIGN_ASINS_PER_ROW = env_int("CAMPAIGN_ASINS_PER_ROW", 1)
@@ -311,24 +320,51 @@ def is_excluded_brand(product):
     return any(normalize_filter_value(value) in ignored for value in brand_values)
 
 
+
+def commission_percent(campaign):
+    raw = (campaign or {}).get("commission_rate", "")
+    match = re.search(r"\d+(?:\.\d+)?", str(raw))
+    return float(match.group(0)) if match else 0.0
+
+
+def matches_search_query(product, query):
+    if not query:
+        return True
+    haystack = " ".join([
+        str(product.get("asin", "")),
+        str(product.get("title", "")),
+        str(product.get("brand", "")),
+        str(product.get("manufacturer", "")),
+    ]).lower()
+    return all(term in haystack for term in query.lower().split())
+
 def get_ideal_misses(product_summary):
     misses = []
 
     if not product_summary["creator_connection"]:
         misses.append("no Creator Campaign")
     if product_summary["main_video_count"] < 1:
-        misses.append("no brand video")
-    if product_summary["influencer_count"] > MAX_INFLUENCER_VIDEOS:
-        misses.append("has influencer videos")
+        misses.append("no upper carousel video")
+    if product_summary["video_count"] < 1:
+        misses.append("no upper carousel video")
     if product_summary["video_count"] > MAX_TOTAL_VIDEOS:
-        misses.append("over 5 videos")
-    if product_summary["buybox_price"] <= MIN_PRICE or product_summary["buybox_price"] > MAX_PRICE:
-        misses.append("outside $50-$100")
+        misses.append("over 8 upper carousel videos")
+    if product_summary["influencer_count"] > MAX_INFLUENCER_VIDEOS:
+        misses.append("over 3 influencer videos")
+    if product_summary["buybox_price"] < MIN_PRICE or product_summary["buybox_price"] > MAX_PRICE:
+        misses.append("outside $35-$125")
     if product_summary["monthly_revenue"] < MIN_MONTHLY_REVENUE:
-        misses.append("under $10k/mo")
+        misses.append("under $20k/mo")
+    if product_summary["monthly_units"] < MIN_MONTHLY_UNITS:
+        misses.append("under 100 units/mo")
+    if (product_summary.get("rating") or 0) < MIN_RATING:
+        misses.append("rating under 4.0")
+    if (product_summary.get("review_count") or 0) < MIN_REVIEW_COUNT:
+        misses.append("under 20 reviews")
+    if product_summary["commission_percent"] < MIN_COMMISSION_PERCENT:
+        misses.append("commission under 10%")
 
     return misses
-
 
 def record_skip(skip_counts, reason):
     skip_counts[reason] += 1
@@ -337,34 +373,49 @@ def record_skip(skip_counts, reason):
 def score_prospect(prospect):
     score = 0
 
-    if prospect.get("creator_connection"):
-        score += 25
-    if prospect.get("main_video_count", 0) >= 1:
-        score += 20
-    if prospect.get("influencer_count", 0) == 0:
-        score += 15
-    elif prospect.get("influencer_count", 0) <= 2:
-        score += 7
-    if prospect.get("video_count", 0) <= MAX_TOTAL_VIDEOS:
-        score += 10
-
     revenue = prospect.get("monthly_revenue", 0) or 0
-    score += min(15, int((revenue / max(MIN_MONTHLY_REVENUE, 1)) * 10))
+    score += min(30, int((revenue / max(MIN_MONTHLY_REVENUE, 1)) * 18))
+
+    videos = prospect.get("video_count", 0) or 0
+    influencers = prospect.get("influencer_count", 0) or 0
+    if 1 <= videos <= 4:
+        score += 15
+    elif videos <= 8:
+        score += 10
+    elif videos <= LOOSE_MAX_TOTAL_VIDEOS:
+        score += 5
+    if influencers == 0:
+        score += 15
+    elif influencers <= 3:
+        score += 10
+    elif influencers <= LOOSE_MAX_INFLUENCER_VIDEOS:
+        score += 4
+
+    commission = prospect.get("commission_percent", 0) or 0
+    score += min(20, int(commission))
 
     price = prospect.get("buybox_price", 0) or 0
-    if MIN_PRICE < price <= MAX_PRICE:
+    if MIN_PRICE <= price <= MAX_PRICE:
         score += 10
-    elif LOOSE_MIN_PRICE < price <= LOOSE_MAX_PRICE:
-        score += 4
+    elif LOOSE_MIN_PRICE <= price <= LOOSE_MAX_PRICE:
+        score += 5
+
+    rating = prospect.get("rating", 0) or 0
+    reviews = prospect.get("review_count", 0) or 0
+    if rating >= 4.2 and reviews >= 50:
+        score += 10
+    elif rating >= LOOSE_MIN_RATING and reviews >= LOOSE_MIN_REVIEW_COUNT:
+        score += 6
 
     trend = prospect.get("sales_trend")
     if trend == "Growing":
         score += 5
     elif trend == "Stable":
         score += 3
+    elif trend == "Declining":
+        score -= 10
 
-    return min(score, 100)
-
+    return max(0, min(score, 100))
 
 def update_scan_history(output, tokens_used):
     entry = {
@@ -620,6 +671,10 @@ def main():
     print(f"Max total videos: {MAX_TOTAL_VIDEOS}")
     print(f"Max influencer videos: {MAX_INFLUENCER_VIDEOS}")
     print(f"Minimum monthly revenue: ${MIN_MONTHLY_REVENUE:,.2f}")
+    print(f"Minimum monthly units: {MIN_MONTHLY_UNITS}")
+    print(f"Minimum rating/reviews: {MIN_RATING}+ / {MIN_REVIEW_COUNT}+")
+    print(f"Minimum commission: {MIN_COMMISSION_PERCENT}%")
+    print(f"Search query: {SEARCH_QUERY or 'none'}")
     print(
         "Loose section: "
         f"${LOOSE_MIN_PRICE:.2f}-${LOOSE_MAX_PRICE:.2f}, "
@@ -675,6 +730,7 @@ def main():
             "product_finder_candidates": product_finder_candidates,
             "product_finder_pages_scanned": product_finder_pages_scanned,
             "scan_token_budget": SCAN_TOKEN_BUDGET,
+            "search_query": SEARCH_QUERY,
             "skip_counts": {},
             "loose_criteria": {
                 "min_price": LOOSE_MIN_PRICE,
@@ -682,6 +738,10 @@ def main():
                 "min_monthly_revenue": LOOSE_MIN_MONTHLY_REVENUE,
                 "max_total_videos": LOOSE_MAX_TOTAL_VIDEOS,
                 "max_influencer_videos": LOOSE_MAX_INFLUENCER_VIDEOS,
+                "min_monthly_units": LOOSE_MIN_MONTHLY_UNITS,
+                "min_rating": LOOSE_MIN_RATING,
+                "min_review_count": LOOSE_MIN_REVIEW_COUNT,
+                "min_commission_percent": LOOSE_MIN_COMMISSION_PERCENT,
             },
             "prospects": [],
         }
@@ -704,6 +764,11 @@ def main():
             main_count, influencer_count, other_video_count = classify_videos(videos)
             counted_video_total = main_count + influencer_count + other_video_count
             official_video_count = get_official_video_count(product, counted_video_total)
+
+            if official_video_count < 1:
+                record_skip(skip_counts, "missing_upper_carousel_video")
+                print(f"Skipping {asin} - no upper carousel video")
+                continue
 
             if official_video_count > LOOSE_MAX_TOTAL_VIDEOS:
                 record_skip(skip_counts, "too_many_videos")
@@ -731,7 +796,7 @@ def main():
                 print(f"  counted video total: {counted_video_total}")
                 continue
 
-            if buybox_price <= LOOSE_MIN_PRICE or buybox_price > LOOSE_MAX_PRICE:
+            if buybox_price < LOOSE_MIN_PRICE or buybox_price > LOOSE_MAX_PRICE:
                 record_skip(skip_counts, "price_outside_loose_range")
                 print(f"Skipping {asin} - price ${buybox_price:.2f} outside loose range")
                 continue
@@ -739,9 +804,19 @@ def main():
             monthly_units = product.get("monthlySold", 0) or 0
             monthly_revenue = buybox_price * monthly_units
 
+            if monthly_units < LOOSE_MIN_MONTHLY_UNITS:
+                record_skip(skip_counts, "monthly_units_too_low")
+                print(f"Skipping {asin} - monthly units {monthly_units}")
+                continue
+
             if monthly_revenue < LOOSE_MIN_MONTHLY_REVENUE:
                 record_skip(skip_counts, "monthly_revenue_too_low")
                 print(f"Skipping {asin} - monthly revenue ${monthly_revenue:,.2f}")
+                continue
+
+            if not matches_search_query(product, SEARCH_QUERY):
+                record_skip(skip_counts, "search_query_mismatch")
+                print(f"Skipping {asin} - does not match search query {SEARCH_QUERY!r}")
                 continue
 
             sales_trend, trend_pct = get_sales_trend(product)
@@ -775,6 +850,28 @@ def main():
                 continue
 
             creator_campaign = creator_connection_matches.get(asin)
+            commission = commission_percent(creator_campaign)
+
+            if commission < LOOSE_MIN_COMMISSION_PERCENT:
+                record_skip(skip_counts, "commission_too_low")
+                print(f"Skipping {asin} - commission {commission:.1f}%")
+                continue
+
+            if rating is None or rating < LOOSE_MIN_RATING:
+                record_skip(skip_counts, "rating_too_low")
+                print(f"Skipping {asin} - rating {rating}")
+                continue
+
+            if review_count is None or review_count < LOOSE_MIN_REVIEW_COUNT:
+                record_skip(skip_counts, "review_count_too_low")
+                print(f"Skipping {asin} - reviews {review_count}")
+                continue
+
+            if sales_trend == "Declining":
+                record_skip(skip_counts, "declining_sales")
+                print(f"Skipping {asin} - declining sales trend")
+                continue
+
             product_summary = {
                 "creator_connection": creator_campaign is not None,
                 "buybox_price": buybox_price,
@@ -782,6 +879,10 @@ def main():
                 "video_count": official_video_count,
                 "main_video_count": main_count,
                 "influencer_count": influencer_count,
+                "monthly_units": monthly_units,
+                "rating": rating,
+                "review_count": review_count,
+                "commission_percent": commission,
             }
             missed_ideal_reasons = get_ideal_misses(product_summary)
             opportunity_tier = "ideal" if not missed_ideal_reasons else "loose"
@@ -819,6 +920,7 @@ def main():
                 "categories": categories,
                 "creator_connection": creator_campaign is not None,
                 "creator_connection_campaign": creator_campaign,
+                "commission_percent": commission,
                 "opportunity_tier": opportunity_tier,
                 "is_ideal": opportunity_tier == "ideal",
                 "missed_ideal_reasons": missed_ideal_reasons,
@@ -864,6 +966,7 @@ def main():
         "product_finder_candidates": product_finder_candidates,
         "product_finder_pages_scanned": product_finder_pages_scanned,
         "scan_token_budget": SCAN_TOKEN_BUDGET,
+        "search_query": SEARCH_QUERY,
         "keepa_products_returned": len(products),
         "skip_counts": dict(skip_counts),
         "loose_criteria": {
@@ -872,6 +975,10 @@ def main():
             "min_monthly_revenue": LOOSE_MIN_MONTHLY_REVENUE,
             "max_total_videos": LOOSE_MAX_TOTAL_VIDEOS,
             "max_influencer_videos": LOOSE_MAX_INFLUENCER_VIDEOS,
+            "min_monthly_units": LOOSE_MIN_MONTHLY_UNITS,
+            "min_rating": LOOSE_MIN_RATING,
+            "min_review_count": LOOSE_MIN_REVIEW_COUNT,
+            "min_commission_percent": LOOSE_MIN_COMMISSION_PERCENT,
         },
         "prospects": sorted_results,
     }

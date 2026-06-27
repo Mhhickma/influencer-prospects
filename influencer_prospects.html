@@ -95,6 +95,8 @@
 <div class="scan-panel">
   <label for="scan-token-budget">Keepa Tokens</label>
   <input id="scan-token-budget" type="number" min="10" max="1500" step="10" value="200">
+  <label for="scan-search-query">Search</label>
+  <input id="scan-search-query" type="text" placeholder="chairs">
   <button class="btn btn-primary" type="button" onclick="openScanWorkflow()">Run Scan</button>
   <button class="btn btn-danger" type="button" onclick="clearProspectPage()">Clear Page</button>
   <span class="scan-status" id="scan-status"></span>
@@ -102,7 +104,7 @@
 
 <div class="controls">
   <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-  <button class="filter-btn" onclick="setFilter('ideal',this)">Ideal Only</button>
+  <button class="filter-btn" onclick="setFilter('ideal',this)">Buy Now</button>
   <button class="filter-btn" onclick="setFilter('highCommission',this)">High Commission</button>
   <button class="filter-btn" onclick="setFilter('new90',this)">New 90 Days</button>
   <button class="filter-btn" onclick="setFilter('Growing',this)">Growing</button>
@@ -134,7 +136,7 @@ async function loadData() {
       ? ` | Creator file updated: ${formatEasternTime(json.creator_connections_last_updated)}`
       : '';
     document.getElementById('cc-last-updated').textContent = formatEasternTime(json.creator_connections_last_updated) || 'Not available';
-    document.getElementById('import-status').textContent = `${prospects.length} prospects loaded (${idealCount} ideal, ${looseCount} loose)`;
+    document.getElementById('import-status').textContent = `${prospects.length} prospects loaded (${idealCount} buy now, ${looseCount} review)`;
     document.getElementById('last-updated').textContent = `Last scan: ${lastScanDate || ''}${creatorFileDate}`;
     renderScanSummary(json);
     renderCards(prospects);
@@ -150,11 +152,12 @@ function renderScanSummary(json) {
   const skipCounts = json.skip_counts || {};
   const topReject = Object.entries(skipCounts).sort((a,b) => b[1] - a[1])[0];
   const campaignAsins = json.creator_connection_asins_loaded || 0;
+  const searchQuery = json.search_query ? ` | search: ${json.search_query}` : '';
   const finderCandidates = json.product_finder_candidates || 0;
   const matched = json.creator_connection_matches || 0;
   const returned = json.keepa_products_returned || 0;
   const rejectText = topReject ? ` | top rejection: ${formatRejectReason(topReject[0])} (${topReject[1]})` : '';
-  summary.textContent = `Campaign ASINs loaded: ${campaignAsins.toLocaleString()} | Product Finder candidates: ${finderCandidates.toLocaleString()} | Campaign matches checked: ${matched} | Keepa products returned: ${returned}${rejectText}`;
+  summary.textContent = `Campaign ASINs loaded: ${campaignAsins.toLocaleString()} | Product Finder candidates: ${finderCandidates.toLocaleString()} | Campaign matches checked: ${matched} | Keepa products returned: ${returned}${searchQuery}${rejectText}`;
 }
 
 function formatRejectReason(reason) {
@@ -183,11 +186,16 @@ function openScanWorkflow() {
   const status = document.getElementById('scan-status');
   const budget = Math.max(10, Math.min(1500, Number(input.value || 200)));
   input.value = budget;
-  const text = String(budget);
+  const searchInput = document.getElementById('scan-search-query');
+  const searchQuery = searchInput ? searchInput.value.trim() : '';
+  const text = searchQuery ? `token_budget=${budget}
+search_query=${searchQuery}` : String(budget);
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text).catch(() => {});
   }
-  status.textContent = `Copied ${text}. Paste it into token_budget.`;
+  status.textContent = searchQuery
+    ? `Copied budget and search. Paste them into the workflow fields.`
+    : `Copied ${text}. Paste it into token_budget.`;
   window.open('https://github.com/Mhhickma/influencer-prospects/actions/workflows/fetch.yml', '_blank');
 }
 
@@ -243,8 +251,8 @@ function renderCards(data) {
     return (a.age_days ?? 999999) - (b.age_days ?? 999999);
   });
   const groups = [
-    {title:'Ideal Products', note:'matches every rule', items: ordered.filter(p => p.is_ideal)},
-    {title:'Loose Matches', note:'near misses worth reviewing', items: ordered.filter(p => !p.is_ideal)}
+    {title:'Buy / Film Now', note:'best products to consider buying', items: ordered.filter(p => p.is_ideal)},
+    {title:'Review', note:'passes hard rules but is less perfect', items: ordered.filter(p => !p.is_ideal)}
   ].filter(group => group.items.length);
 
   let cardIndex = 0;

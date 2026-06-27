@@ -15,6 +15,10 @@ on:
         description: 'Approximate Keepa token budget for this scan.'
         required: false
         default: '200'
+      search_query:
+        description: 'Optional product search, like chairs or desks.'
+        required: false
+        default: ''
 
 # Test trigger marker: Product Finder first, Creator Campaign second.
 
@@ -45,6 +49,7 @@ jobs:
           AFFILIATE_TAG: ${{ vars.AFFILIATE_TAG }}
           SCAN_TOKEN_BUDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || vars.SCAN_TOKEN_BUDGET || '200' }}
           MAX_ASINS: ${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || vars.MAX_ASINS || '200' }}
+          SEARCH_QUERY: ${{ github.event_name == 'workflow_dispatch' && inputs.search_query || vars.SEARCH_QUERY || '' }}
         run: python keepa_fetch.py
 
       - name: Commit data

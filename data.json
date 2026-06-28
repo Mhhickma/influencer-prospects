@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-06-27 17:46 UTC",
+  "last_updated": "2026-06-28 10:22 UTC",
   "total": 0,
   "total_ideal": 0,
   "total_loose": 0,
@@ -29,26 +29,31 @@
     "Apple Store"
   ],
   "brand_video_required": true,
-  "creator_connections_last_updated": "2026-06-27 09:58 UTC",
+  "creator_connections_last_updated": "2026-06-28 10:22 UTC",
   "creator_connection_files_scanned": 8,
   "creator_connection_rows_scanned": 750540,
-  "creator_connection_asins_loaded": 4762720,
-  "creator_connection_matches": 190,
-  "product_finder_candidates": 1000,
-  "product_finder_pages_scanned": 10,
+  "creator_connection_asins_loaded": 4742130,
+  "creator_connection_matches": 193,
+  "product_finder_candidates": 700,
+  "product_finder_pages_scanned": 7,
   "scan_token_budget": 200,
-  "keepa_products_returned": 190,
+  "search_query": "",
+  "keepa_products_returned": 193,
   "skip_counts": {
-    "too_many_influencer_videos": 150,
-    "monthly_revenue_too_low": 4,
-    "price_outside_loose_range": 2
+    "too_many_influencer_videos": 109,
+    "rating_too_low": 46,
+    "monthly_revenue_too_low": 38
   },
   "loose_criteria": {
-    "min_price": 40,
-    "max_price": 125,
-    "min_monthly_revenue": 5000,
+    "min_price": 25,
+    "max_price": 150,
+    "min_monthly_revenue": 10000,
     "max_total_videos": 10,
-    "max_influencer_videos": 6
+    "max_influencer_videos": 8,
+    "min_monthly_units": 100,
+    "min_rating": 4.0,
+    "min_review_count": 20,
+    "min_commission_percent": 10
   },
   "prospects": []
 }

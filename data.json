@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-07-01 11:19 UTC",
+  "last_updated": "2026-07-01 20:50 UTC",
   "total": 0,
   "total_ideal": 0,
   "total_loose": 0,
@@ -29,7 +29,7 @@
     "Apple Store"
   ],
   "brand_video_required": true,
-  "creator_connections_last_updated": "2026-07-01 11:18 UTC",
+  "creator_connections_last_updated": "2026-07-01 20:50 UTC",
   "creator_connection_files_scanned": 8,
   "creator_connection_rows_scanned": 750540,
   "creator_connection_asins_loaded": 4119354,
@@ -37,13 +37,13 @@
   "product_finder_candidates": 800,
   "product_finder_pages_scanned": 8,
   "scan_token_budget": 200,
-  "search_query": "",
+  "search_query": "Compact Flashlights",
   "keepa_products_returned": 192,
   "skip_counts": {
-    "too_many_influencer_videos": 112,
-    "rating_too_low": 47,
+    "too_many_influencer_videos": 118,
+    "search_query_mismatch": 40,
     "monthly_revenue_too_low": 32,
-    "price_outside_loose_range": 1
+    "too_many_videos": 2
   },
   "loose_criteria": {
     "min_price": 25,

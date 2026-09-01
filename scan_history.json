@@ -1,5 +1,23 @@
 [
   {
+    "last_updated": "2026-09-01 12:55 UTC",
+    "total": 0,
+    "total_ideal": 0,
+    "total_loose": 0,
+    "scan_source": "product_finder_creator_connections",
+    "creator_connection_asins_loaded": 2234276,
+    "creator_connection_matches": 177,
+    "creator_connection_rows_scanned": 771426,
+    "product_finder_candidates": 1000,
+    "product_finder_pages_scanned": 10,
+    "skip_counts": {
+      "too_many_influencer_videos": 23,
+      "rating_too_low": 30,
+      "monthly_revenue_too_low": 124
+    },
+    "tokens_used": 37
+  },
+  {
     "last_updated": "2026-08-31 15:43 UTC",
     "total": 0,
     "total_ideal": 0,
@@ -346,23 +364,5 @@
       "monthly_revenue_too_low": 12
     },
     "tokens_used": -42
-  },
-  {
-    "last_updated": "2026-08-12 09:04 UTC",
-    "total": 0,
-    "total_ideal": 0,
-    "total_loose": 0,
-    "scan_source": "product_finder_creator_connections",
-    "creator_connection_asins_loaded": 2757183,
-    "creator_connection_matches": 104,
-    "creator_connection_rows_scanned": 771426,
-    "product_finder_candidates": 1000,
-    "product_finder_pages_scanned": 10,
-    "skip_counts": {
-      "too_many_influencer_videos": 42,
-      "rating_too_low": 49,
-      "monthly_revenue_too_low": 13
-    },
-    "tokens_used": -11
   }
 ]

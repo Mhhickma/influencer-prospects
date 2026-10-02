@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-10-01 14:58 UTC",
+  "last_updated": "2026-10-02 14:21 UTC",
   "total": 0,
   "total_ideal": 0,
   "total_loose": 0,
@@ -29,20 +29,20 @@
     "Apple Store"
   ],
   "brand_video_required": true,
-  "creator_connections_last_updated": "2026-10-01 14:58 UTC",
+  "creator_connections_last_updated": "2026-10-02 14:21 UTC",
   "creator_connection_files_scanned": 9,
   "creator_connection_rows_scanned": 771426,
-  "creator_connection_asins_loaded": 1868967,
-  "creator_connection_matches": 123,
+  "creator_connection_asins_loaded": 1850717,
+  "creator_connection_matches": 46,
   "product_finder_candidates": 1000,
   "product_finder_pages_scanned": 10,
   "scan_token_budget": 200,
   "search_query": "",
-  "keepa_products_returned": 123,
+  "keepa_products_returned": 46,
   "skip_counts": {
-    "rating_too_low": 20,
-    "too_many_influencer_videos": 14,
-    "monthly_revenue_too_low": 89
+    "too_many_influencer_videos": 24,
+    "rating_too_low": 18,
+    "monthly_revenue_too_low": 4
   },
   "loose_criteria": {
     "min_price": 25,
